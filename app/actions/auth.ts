@@ -29,6 +29,7 @@ export type SignUpState = {
     password?: string[];
     confirmPassword?: string[];
   };
+  message?: string;
 };
 
 export async function signUp(
