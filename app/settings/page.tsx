@@ -14,7 +14,6 @@ type SettingsPageProps = {
 export default async function SettingsPage({
   searchParams,
 }: SettingsPageProps) {
-
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -32,7 +31,6 @@ export default async function SettingsPage({
   }
 
   const params = await searchParams;
-
 
   async function updateAccount(formData: FormData) {
     "use server";
@@ -55,6 +53,9 @@ export default async function SettingsPage({
 
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
+    if (name === currentUser.name && email === currentUser.email) {
+      redirect("/settings?message=no-changes");
+    }
 
     if (!name || !email) {
       redirect("/settings?error=missing-fields");
@@ -66,15 +67,11 @@ export default async function SettingsPage({
       },
     });
 
-    if (
-      existingUser &&
-      existingUser.id !== currentUser.id
-    ) {
+    if (existingUser && existingUser.id !== currentUser.id) {
       redirect("/settings?error=email-exists");
     }
 
-    const emailChanged =
-      email !== currentUser.email;
+    const emailChanged = email !== currentUser.email;
 
     await prisma.user.update({
       where: {
@@ -89,22 +86,18 @@ export default async function SettingsPage({
 
     if (emailChanged) {
       await signOut({
-        redirectTo:
-          "/login?message=email-updated",
+        redirectTo: "/login?message=email-updated",
       });
 
       return;
     }
 
-   revalidatePath("/", "layout");
+    revalidatePath("/", "layout");
 
     redirect("/settings?success=account");
   }
 
-
-  async function updatePassword(
-    formData: FormData
-  ) {
+  async function updatePassword(formData: FormData) {
     "use server";
 
     const session = await auth();
@@ -113,51 +106,40 @@ export default async function SettingsPage({
       redirect("/login");
     }
 
-    const currentUser =
-      await prisma.user.findUnique({
-        where: {
-          email: session.user.email,
-        },
-      });
+    const currentUser = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
 
     if (!currentUser) {
       redirect("/login");
     }
 
-    const currentPassword = String(
-      formData.get("currentPassword") || ""
-    );
+    const currentPassword = String(formData.get("currentPassword") || "");
 
-    const newPassword = String(
-      formData.get("newPassword") || ""
-    );
-
+    const newPassword = String(formData.get("newPassword") || "");
+    if (currentPassword === newPassword) {
+      redirect("/settings?message=no-changes");
+    }
     if (!currentPassword || !newPassword) {
-      redirect(
-        "/settings?error=password-fields"
-      );
+      redirect("/settings?error=password-fields");
     }
 
-    const passwordMatch =
-      await bcrypt.compare(
-        currentPassword,
-        currentUser.password
-      );
+    const passwordMatch = await bcrypt.compare(
+      currentPassword,
+      currentUser.password,
+    );
 
     if (!passwordMatch) {
-      redirect(
-        "/settings?error=wrong-password"
-      );
+      redirect("/settings?error=wrong-password");
     }
 
     if (newPassword.length < 8) {
-      redirect(
-        "/settings?error=short-password"
-      );
+      redirect("/settings?error=short-password");
     }
 
-    const hashedPassword =
-      await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.update({
       where: {
@@ -174,29 +156,26 @@ export default async function SettingsPage({
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
-
       <section className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="mb-8 text-3xl font-bold">
-          Settings
-        </h1>
-
+        <h1 className="mb-8 text-3xl font-bold">Settings</h1>
 
         {params.success === "account" && (
           <div className="mb-6 rounded-md border border-green-800 bg-green-950/40 p-4 text-sm text-green-300">
-            Account information updated
-            successfully.
+            Account information updated successfully.
           </div>
         )}
-
+        {params.message === "no-changes" && (
+          <div className="mb-6 rounded-md border border-yellow-800 bg-yellow-950/40 p-4 text-sm text-yellow-300">
+            Account information wasnt updated because there were no changes made
+          </div>
+        )}
         {params.success === "password" && (
           <div className="mb-6 rounded-md border border-green-800 bg-green-950/40 p-4 text-sm text-green-300">
             Password updated successfully.
           </div>
         )}
 
-
-        {params.error ===
-          "missing-fields" && (
+        {params.error === "missing-fields" && (
           <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
             Name and email are required.
           </div>
@@ -204,60 +183,43 @@ export default async function SettingsPage({
 
         {params.error === "email-exists" && (
           <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            An account with this email already
-            exists.
+            An account with this email already exists.
           </div>
         )}
 
-        {params.error ===
-          "password-fields" && (
+        {params.error === "password-fields" && (
           <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Enter both your current and new
-            password.
+            Enter both your current and new password.
           </div>
         )}
 
-        {params.error ===
-          "wrong-password" && (
+        {params.error === "wrong-password" && (
           <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
             Your current password is incorrect.
           </div>
         )}
 
-        {params.error ===
-          "short-password" && (
+        {params.error === "short-password" && (
           <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            New password must be at least 8
-            characters.
+            New password must be at least 8 characters.
           </div>
         )}
 
-
         <div className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-6">
-          <h2 className="text-xl font-semibold">
-            {user.name}
-          </h2>
+          <h2 className="text-xl font-semibold">{user.name}</h2>
 
-          <p className="mt-1 text-sm text-slate-400">
-            {user.email}
-          </p>
+          <p className="mt-1 text-sm text-slate-400">{user.email}</p>
         </div>
-
 
         <form
           action={updateAccount}
           className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-6"
         >
-          <h2 className="mb-5 text-xl font-semibold">
-            Account
-          </h2>
+          <h2 className="mb-5 text-xl font-semibold">Account</h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-
             <div>
-              <label className="mb-2 block text-sm text-slate-300">
-                Name
-              </label>
+              <label className="mb-2 block text-sm text-slate-300">Name</label>
 
               <input
                 type="text"
@@ -268,11 +230,8 @@ export default async function SettingsPage({
               />
             </div>
 
-
             <div>
-              <label className="mb-2 block text-sm text-slate-300">
-                Email
-              </label>
+              <label className="mb-2 block text-sm text-slate-300">Email</label>
 
               <input
                 type="email"
@@ -283,8 +242,7 @@ export default async function SettingsPage({
               />
 
               <p className="mt-2 text-xs leading-5 text-amber-300">
-                Changing your email will sign
-                you out. You&apos;ll need to log
+                Changing your email will sign you out. You&apos;ll need to log
                 in again using your new email.
               </p>
             </div>
@@ -300,17 +258,13 @@ export default async function SettingsPage({
           </div>
         </form>
 
-
         <form
           action={updatePassword}
           className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-6"
         >
-          <h2 className="mb-5 text-xl font-semibold">
-            Password
-          </h2>
+          <h2 className="mb-5 text-xl font-semibold">Password</h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-
             <div>
               <label className="mb-2 block text-sm text-slate-300">
                 Current password
@@ -323,7 +277,6 @@ export default async function SettingsPage({
                 className="w-full rounded-md border border-slate-700 bg-[#020617] px-4 py-3 outline-none focus:border-indigo-500"
               />
             </div>
-
 
             <div>
               <label className="mb-2 block text-sm text-slate-300">
@@ -351,17 +304,12 @@ export default async function SettingsPage({
           </div>
         </form>
 
-
         <div className="flex items-center justify-between gap-5 rounded-xl border border-red-900/50 bg-[#0f172a] p-6">
           <div>
-            <h2 className="text-xl font-semibold">
-              Session
-            </h2>
+            <h2 className="text-xl font-semibold">Session</h2>
 
             <p className="mt-1 text-sm text-slate-400">
-              Sign out of this browser.
-              You&apos;ll return to the landing
-              page.
+              Sign out of this browser. You&apos;ll return to the landing page.
             </p>
           </div>
 
