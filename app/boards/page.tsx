@@ -2,10 +2,10 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+
 import NewBoardModal from "../components/NewBoardModal";
 import NewBoardButton from "../components/NewBoardButton";
-import EditBoardModal from "../components/EditBoardModal";
-import { deleteBoard } from "@/app/actions/boards";
+import BoardMenu from "../components/BoardMenu";
 
 type BoardsPageProps = {
   searchParams: Promise<{
@@ -78,8 +78,6 @@ export default async function BoardsPage({ searchParams }: BoardsPageProps) {
 
         <div className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {boards.map((board) => {
-            const deleteBoardWithId = deleteBoard.bind(null, board.id);
-
             const cardCount = board.lists.reduce(
               (total, list) => total + list._count.cards,
               0
@@ -90,35 +88,11 @@ export default async function BoardsPage({ searchParams }: BoardsPageProps) {
                 key={board.id}
                 className="relative flex min-h-[150px] flex-col rounded-xl border border-slate-700 bg-[#0f172a] transition hover:border-indigo-500 sm:min-h-[160px]"
               >
-                <details className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4">
-                  <summary className="cursor-pointer list-none rounded-md px-2 py-1 text-xl text-slate-400 transition hover:bg-slate-800 hover:text-white">
-                    ...
-                  </summary>
-
-                  <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-slate-700 bg-[#111827] shadow-xl sm:w-52">
-                    <Link
-                      href={`/boards/${board.id}`}
-                      className="block px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-800"
-                    >
-                      Open board
-                    </Link>
-
-                    <EditBoardModal
-                      boardId={board.id}
-                      currentTitle={board.title}
-                      currentDescription={board.description ?? ""}
-                    />
-
-                    <form action={deleteBoardWithId}>
-                      <button
-                        type="submit"
-                        className="w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-slate-800"
-                      >
-                        Delete board
-                      </button>
-                    </form>
-                  </div>
-                </details>
+                <BoardMenu
+                  boardId={board.id}
+                  currentTitle={board.title}
+                  currentDescription={board.description ?? ""}
+                />
 
                 <Link
                   href={`/boards/${board.id}`}

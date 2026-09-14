@@ -9,6 +9,7 @@ type EditBoardModalProps = {
   currentDescription: string;
   buttonText?: string;
   buttonClassName?: string;
+  closeMenu?: () => void;
 };
 
 export default function EditBoardModal({
@@ -17,15 +18,23 @@ export default function EditBoardModal({
   currentDescription,
   buttonText = "Edit title & description",
   buttonClassName = "w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800",
+  closeMenu,
 }: EditBoardModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const updateBoardWithId = updateBoard.bind(null, boardId);
 
   async function handleUpdate(formData: FormData) {
+    closeMenu?.();
+
     await updateBoardWithId(formData);
 
     setIsOpen(false);
+  }
+
+  function handleCancel() {
+    setIsOpen(false);
+    closeMenu?.();
   }
 
   return (
@@ -48,7 +57,7 @@ export default function EditBoardModal({
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={handleCancel}
                 className="text-xl text-slate-400 transition hover:text-white"
               >
                 ×
@@ -94,7 +103,7 @@ export default function EditBoardModal({
               <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleCancel}
                   className="w-full rounded-lg px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 sm:w-auto"
                 >
                   Cancel
