@@ -8,6 +8,7 @@ type SettingsPageProps = {
   searchParams: Promise<{
     success?: string;
     error?: string;
+    message?: string;
   }>;
 };
 
@@ -53,6 +54,7 @@ export default async function SettingsPage({
 
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
+
     if (name === currentUser.name && email === currentUser.email) {
       redirect("/settings?message=no-changes");
     }
@@ -77,7 +79,6 @@ export default async function SettingsPage({
       where: {
         id: currentUser.id,
       },
-
       data: {
         name,
         email,
@@ -117,18 +118,19 @@ export default async function SettingsPage({
     }
 
     const currentPassword = String(formData.get("currentPassword") || "");
-
     const newPassword = String(formData.get("newPassword") || "");
+
     if (currentPassword === newPassword) {
       redirect("/settings?message=no-changes");
     }
+
     if (!currentPassword || !newPassword) {
       redirect("/settings?error=password-fields");
     }
 
     const passwordMatch = await bcrypt.compare(
       currentPassword,
-      currentUser.password,
+      currentUser.password
     );
 
     if (!passwordMatch) {
@@ -145,7 +147,6 @@ export default async function SettingsPage({
       where: {
         id: currentUser.id,
       },
-
       data: {
         password: hashedPassword,
       },
@@ -156,19 +157,24 @@ export default async function SettingsPage({
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="mb-8 text-3xl font-bold">Settings</h1>
+      <section className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:py-12">
+        <h1 className="mb-6 text-2xl font-bold sm:mb-8 sm:text-3xl">
+          Settings
+        </h1>
 
         {params.success === "account" && (
           <div className="mb-6 rounded-md border border-green-800 bg-green-950/40 p-4 text-sm text-green-300">
             Account information updated successfully.
           </div>
         )}
+
         {params.message === "no-changes" && (
           <div className="mb-6 rounded-md border border-yellow-800 bg-yellow-950/40 p-4 text-sm text-yellow-300">
-            Account information wasnt updated because there were no changes made
+            Account information wasn&apos;t updated because there were no
+            changes made.
           </div>
         )}
+
         {params.success === "password" && (
           <div className="mb-6 rounded-md border border-green-800 bg-green-950/40 p-4 text-sm text-green-300">
             Password updated successfully.
@@ -205,19 +211,21 @@ export default async function SettingsPage({
           </div>
         )}
 
-        <div className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-6">
-          <h2 className="text-xl font-semibold">{user.name}</h2>
+        <div className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-4 sm:p-6">
+          <h2 className="break-words text-lg font-semibold sm:text-xl">
+            {user.name}
+          </h2>
 
-          <p className="mt-1 text-sm text-slate-400">{user.email}</p>
+          <p className="mt-1 break-all text-sm text-slate-400">{user.email}</p>
         </div>
 
         <form
           action={updateAccount}
-          className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-6"
+          className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-4 sm:p-6"
         >
-          <h2 className="mb-5 text-xl font-semibold">Account</h2>
+          <h2 className="mb-5 text-lg font-semibold sm:text-xl">Account</h2>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm text-slate-300">Name</label>
 
@@ -248,10 +256,10 @@ export default async function SettingsPage({
             </div>
           </div>
 
-          <div className="mt-5 flex justify-end">
+          <div className="mt-5 flex sm:justify-end">
             <button
               type="submit"
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium transition hover:bg-indigo-500"
+              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium transition hover:bg-indigo-500 sm:w-auto"
             >
               Save changes
             </button>
@@ -260,11 +268,11 @@ export default async function SettingsPage({
 
         <form
           action={updatePassword}
-          className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-6"
+          className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-4 sm:p-6"
         >
-          <h2 className="mb-5 text-xl font-semibold">Password</h2>
+          <h2 className="mb-5 text-lg font-semibold sm:text-xl">Password</h2>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm text-slate-300">
                 Current password
@@ -294,19 +302,19 @@ export default async function SettingsPage({
             </div>
           </div>
 
-          <div className="mt-5 flex justify-end">
+          <div className="mt-5 flex sm:justify-end">
             <button
               type="submit"
-              className="rounded-md border border-slate-600 px-4 py-2 text-sm transition hover:bg-slate-800"
+              className="w-full rounded-md border border-slate-600 px-4 py-2 text-sm transition hover:bg-slate-800 sm:w-auto"
             >
               Update password
             </button>
           </div>
         </form>
 
-        <div className="flex items-center justify-between gap-5 rounded-xl border border-red-900/50 bg-[#0f172a] p-6">
+        <div className="flex flex-col gap-5 rounded-xl border border-red-900/50 bg-[#0f172a] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
-            <h2 className="text-xl font-semibold">Session</h2>
+            <h2 className="text-lg font-semibold sm:text-xl">Session</h2>
 
             <p className="mt-1 text-sm text-slate-400">
               Sign out of this browser. You&apos;ll return to the landing page.
@@ -321,10 +329,11 @@ export default async function SettingsPage({
                 redirectTo: "/",
               });
             }}
+            className="w-full sm:w-auto"
           >
             <button
               type="submit"
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium transition hover:bg-red-500"
+              className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium transition hover:bg-red-500 sm:w-auto"
             >
               Sign out
             </button>

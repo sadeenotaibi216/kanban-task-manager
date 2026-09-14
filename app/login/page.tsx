@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <div className="flex min-h-[85vh] items-center justify-center p-4 py-8">
+      <div className="flex min-h-[80vh] items-center justify-center px-4 py-6 sm:min-h-[85vh] sm:px-6 sm:py-8">
         <div className="w-full max-w-md">
           {params.message === "email-updated" && (
             <div className="mb-5 rounded-md border border-green-800 bg-green-950/40 p-4 text-sm leading-6 text-green-300">
@@ -39,7 +39,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="rounded-lg border border-slate-800 bg-slate-900 p-5 shadow-lg sm:p-8">
             <h2 className="text-xl font-bold sm:text-2xl">Welcome back</h2>
 
-            <p className="mb-6 mt-2 text-sm text-slate-400">
+            <p className="mb-6 mt-2 text-sm leading-6 text-slate-400">
               Log in with the email address you signed up with.
             </p>
 

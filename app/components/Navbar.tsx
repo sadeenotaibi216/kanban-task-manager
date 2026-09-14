@@ -17,10 +17,5 @@ export default async function Navbar() {
     userName = user?.name ?? null;
   }
 
-  return (
-    <NavbarClient
-      userName={userName}
-      isLoggedIn={!!session?.user}
-    />
-  );
+  return <NavbarClient userName={userName} isLoggedIn={!!session?.user} />;
 }

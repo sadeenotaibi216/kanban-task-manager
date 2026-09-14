@@ -7,12 +7,16 @@ type EditBoardModalProps = {
   boardId: string;
   currentTitle: string;
   currentDescription: string;
+  buttonText?: string;
+  buttonClassName?: string;
 };
 
 export default function EditBoardModal({
   boardId,
   currentTitle,
   currentDescription,
+  buttonText = "Edit title & description",
+  buttonClassName = "w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800",
 }: EditBoardModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -29,69 +33,76 @@ export default function EditBoardModal({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+        className={buttonClassName}
       >
-        Edit title & description
+        {buttonText}
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-[#0f172a] p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-white">
-              Edit board
-            </h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:px-6">
+          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-[#0f172a] p-4 shadow-xl sm:p-6">
+            <div className="mb-5 flex items-center justify-between sm:mb-6">
+              <h2 className="text-lg font-semibold text-white sm:text-xl">
+                Edit board
+              </h2>
 
-            <form
-              action={handleUpdate}
-              className="mt-6 space-y-4"
-            >
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-xl text-slate-400 transition hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+
+            <form action={handleUpdate} className="space-y-4">
               <div>
                 <label
-                  htmlFor={`title-${boardId}`}
+                  htmlFor={`board-title-${boardId}`}
                   className="mb-2 block text-sm font-medium text-slate-300"
                 >
                   Title
                 </label>
 
                 <input
-                  id={`title-${boardId}`}
+                  id={`board-title-${boardId}`}
                   name="title"
                   type="text"
-                  defaultValue={currentTitle}
                   required
-                  className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none transition focus:border-indigo-500"
+                  defaultValue={currentTitle}
+                  className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none transition focus:border-indigo-500 sm:px-4 sm:py-3"
                 />
               </div>
 
               <div>
                 <label
-                  htmlFor={`description-${boardId}`}
+                  htmlFor={`board-description-${boardId}`}
                   className="mb-2 block text-sm font-medium text-slate-300"
                 >
                   Description
                 </label>
 
                 <textarea
-                  id={`description-${boardId}`}
+                  id={`board-description-${boardId}`}
                   name="description"
-                  defaultValue={currentDescription}
                   rows={4}
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none transition focus:border-indigo-500"
+                  defaultValue={currentDescription}
+                  className="w-full resize-none rounded-lg border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none transition focus:border-indigo-500 sm:px-4 sm:py-3"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                  className="w-full rounded-lg px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 sm:w-auto"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 sm:w-auto"
                 >
                   Save changes
                 </button>

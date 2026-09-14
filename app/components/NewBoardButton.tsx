@@ -20,9 +20,7 @@ export default function NewBoardButton() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-xl border border-slate-700 bg-[#0f172a] p-6">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">
-                New board
-              </h2>
+              <h2 className="text-xl font-bold text-white">New board</h2>
 
               <button
                 type="button"
@@ -57,8 +55,7 @@ export default function NewBoardButton() {
                   htmlFor="new-board-description"
                   className="mb-2 block text-sm text-slate-300"
                 >
-                  Description{" "}
-                  <span className="text-slate-500">optional</span>
+                  Description <span className="text-slate-500">optional</span>
                 </label>
 
                 <textarea

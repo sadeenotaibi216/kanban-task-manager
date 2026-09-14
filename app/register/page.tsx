@@ -14,11 +14,11 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
-      <div className="flex min-h-[85vh] items-center justify-center px-4 py-8">
+      <div className="flex min-h-[80vh] items-center justify-center px-4 py-6 sm:min-h-[85vh] sm:px-6 sm:py-8">
         <div className="w-full max-w-md rounded-lg border border-slate-800 bg-slate-900 p-5 shadow-lg sm:p-8">
-          <h1 className="text-2xl font-bold">Create your account</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">Create your account</h1>
 
-          <p className="mb-6 mt-2 text-sm text-slate-400">
+          <p className="mb-6 mt-2 text-sm leading-6 text-slate-400">
             Enter your information to create an account.
           </p>
 
@@ -79,7 +79,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="register-password"
