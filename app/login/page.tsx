@@ -1,38 +1,29 @@
-import Link from "next/link";
-import { signIn } from "@/auth";
-import { AuthError } from "next-auth";
-import { redirect } from "next/navigation";
+"use client";
 
-type LoginPageProps = {
-  searchParams: Promise<{
-    message?: string;
-    error?: string;
-  }>;
+import Link from "next/link";
+import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
+import { login } from "@/app/actions/auth";
+
+const initialState = {
+  message: "",
 };
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const params = await searchParams;
+export default function LoginPage() {
+  const searchParams = useSearchParams();
+
+  const message = searchParams.get("message");
+
+  const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="flex min-h-[80vh] items-center justify-center px-4 py-6 sm:min-h-[85vh] sm:px-6 sm:py-8">
         <div className="w-full max-w-md">
-          {params.message === "email-updated" && (
+          {message === "email-updated" && (
             <div className="mb-5 rounded-md border border-green-800 bg-green-950/40 p-4 text-sm leading-6 text-green-300">
               Your email was updated successfully. Please log in again using
               your new email address.
-            </div>
-          )}
-
-          {params.error === "invalid-credentials" && (
-            <div className="mb-5 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-              Invalid email or password. Please try again.
-            </div>
-          )}
-
-          {params.error === "something-went-wrong" && (
-            <div className="mb-5 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-              Something went wrong while logging in. Please try again.
             </div>
           )}
 
@@ -43,30 +34,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Log in with the email address you signed up with.
             </p>
 
-            <form
-              action={async (formData) => {
-                "use server";
+            {state?.message && (
+              <div className="mb-5 rounded-md border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
+                {state.message}
+              </div>
+            )}
 
-                try {
-                  await signIn("credentials", {
-                    email: formData.get("email"),
-                    password: formData.get("password"),
-                    redirectTo: "/",
-                  });
-                } catch (error) {
-                  if (error instanceof AuthError) {
-                    if (error.type === "CredentialsSignin") {
-                      redirect("/login?error=invalid-credentials");
-                    }
-
-                    redirect("/login?error=something-went-wrong");
-                  }
-
-                  throw error;
-                }
-              }}
-              className="space-y-4"
-            >
+            <form action={formAction} className="space-y-4">
               <div>
                 <label
                   htmlFor="email"
@@ -105,9 +79,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
               <button
                 type="submit"
-                className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-500"
+                disabled={pending}
+                className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Log in
+                {pending ? "Logging in..." : "Log in"}
               </button>
             </form>
 
