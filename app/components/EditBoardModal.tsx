@@ -1,125 +1,108 @@
 "use client";
 
-import { useState } from "react";
 import { updateBoard } from "@/app/actions/boards";
 
 type EditBoardModalProps = {
   boardId: string;
   currentTitle: string;
   currentDescription: string;
-  buttonText?: string;
-  buttonClassName?: string;
-  closeMenu?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 export default function EditBoardModal({
   boardId,
   currentTitle,
   currentDescription,
-  buttonText = "Edit title & description",
-  buttonClassName = "w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800",
-  closeMenu,
+  isOpen,
+  onClose,
 }: EditBoardModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const updateBoardWithId = updateBoard.bind(null, boardId);
 
   async function handleUpdate(formData: FormData) {
-    closeMenu?.();
-
     await updateBoardWithId(formData);
-
-    setIsOpen(false);
+    onClose();
   }
 
-  function handleCancel() {
-    setIsOpen(false);
-    closeMenu?.();
+  if (!isOpen) {
+    return null;
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={buttonClassName}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-700 bg-[#111827] p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        {buttonText}
-      </button>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Edit board</h2>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:px-6">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-[#0f172a] p-4 shadow-xl sm:p-6">
-            <div className="mb-5 flex items-center justify-between sm:mb-6">
-              <h2 className="text-lg font-semibold text-white sm:text-xl">
-                Edit board
-              </h2>
-
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="text-xl text-slate-400 transition hover:text-white"
-              >
-                ×
-              </button>
-            </div>
-
-            <form action={handleUpdate} className="space-y-4">
-              <div>
-                <label
-                  htmlFor={`board-title-${boardId}`}
-                  className="mb-2 block text-sm font-medium text-slate-300"
-                >
-                  Title
-                </label>
-
-                <input
-                  id={`board-title-${boardId}`}
-                  name="title"
-                  type="text"
-                  required
-                  defaultValue={currentTitle}
-                  className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none transition focus:border-indigo-500 sm:px-4 sm:py-3"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={`board-description-${boardId}`}
-                  className="mb-2 block text-sm font-medium text-slate-300"
-                >
-                  Description
-                </label>
-
-                <textarea
-                  id={`board-description-${boardId}`}
-                  name="description"
-                  rows={4}
-                  defaultValue={currentDescription}
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none transition focus:border-indigo-500 sm:px-4 sm:py-3"
-                />
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="w-full rounded-lg px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 sm:w-auto"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 sm:w-auto"
-                >
-                  Save changes
-                </button>
-              </div>
-            </form>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xl text-slate-400 transition hover:text-white"
+          >
+            ×
+          </button>
         </div>
-      )}
-    </>
+
+        <form action={handleUpdate} className="space-y-4">
+          <div>
+            <label
+              htmlFor="title"
+              className="mb-2 block text-sm font-medium text-slate-300"
+            >
+              Board title
+            </label>
+
+            <input
+              id="title"
+              name="title"
+              type="text"
+              defaultValue={currentTitle}
+              required
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition placeholder:text-slate-500 focus:border-slate-500"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="description"
+              className="mb-2 block text-sm font-medium text-slate-300"
+            >
+              Description
+            </label>
+
+            <textarea
+              id="description"
+              name="description"
+              defaultValue={currentDescription}
+              rows={4}
+              className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition placeholder:text-slate-500 focus:border-slate-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+            >
+              Save changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
