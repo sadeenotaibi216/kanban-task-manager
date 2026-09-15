@@ -1,19 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { deleteList } from "@/app/actions/lists";
+import { deleteList, moveList } from "@/app/actions/lists";
 import EditListModal from "./EditListModal";
 
 type ListMenuProps = {
   listId: string;
   currentTitle: string;
+  isFirstList: boolean;
+  isLastList: boolean;
 };
 
-export default function ListMenu({ listId, currentTitle }: ListMenuProps) {
+export default function ListMenu({
+  listId,
+  currentTitle,
+  isFirstList,
+  isLastList,
+}: ListMenuProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const deleteListWithId = deleteList.bind(null, listId);
+  const moveLeft = moveList.bind(null, listId, "left");
+  const moveRight = moveList.bind(null, listId, "right");
 
   function handleEdit() {
     setIsMenuOpen(false);
@@ -40,6 +49,26 @@ export default function ListMenu({ listId, currentTitle }: ListMenuProps) {
             >
               Edit list
             </button>
+
+            <form action={moveLeft}>
+              <button
+                type="submit"
+                disabled={isFirstList}
+                className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
+              >
+                Move left
+              </button>
+            </form>
+
+            <form action={moveRight}>
+              <button
+                type="submit"
+                disabled={isLastList}
+                className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
+              >
+                Move right
+              </button>
+            </form>
 
             <form action={deleteListWithId}>
               <button

@@ -4,8 +4,6 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-// import NextAuth from "next-auth";
-// import Credentials from "next-auth/providers/credentials";
 
 const SignUpSchema = z
   .object({
