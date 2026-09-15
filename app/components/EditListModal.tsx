@@ -1,102 +1,89 @@
 "use client";
 
-import { useState } from "react";
 import { updateList } from "@/app/actions/lists";
 
 type EditListModalProps = {
   listId: string;
   currentTitle: string;
-  closeMenu: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 export default function EditListModal({
   listId,
   currentTitle,
-  closeMenu,
+  isOpen,
+  onClose,
 }: EditListModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const updateListWithId = updateList.bind(null, listId);
 
   async function handleUpdate(formData: FormData) {
-    closeMenu();
-
     await updateListWithId(formData);
-
-    setIsOpen(false);
+    onClose();
   }
 
-  function handleCancel() {
-    setIsOpen(false);
-    closeMenu();
+  if (!isOpen) {
+    return null;
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-700 bg-[#111827] p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        Edit list
-      </button>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Edit list</h2>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:px-6">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-[#0f172a] p-4 shadow-xl sm:p-6">
-            <div className="mb-5 flex items-center justify-between sm:mb-6">
-              <h2 className="text-lg font-semibold text-white sm:text-xl">
-                Edit list
-              </h2>
-
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="text-xl text-slate-400 transition hover:text-white"
-              >
-                ×
-              </button>
-            </div>
-
-            <form action={handleUpdate} className="space-y-5">
-              <div>
-                <label
-                  htmlFor={`list-title-${listId}`}
-                  className="mb-2 block text-sm text-slate-300"
-                >
-                  List title
-                </label>
-
-                <input
-                  id={`list-title-${listId}`}
-                  type="text"
-                  name="title"
-                  required
-                  defaultValue={currentTitle}
-                  className="w-full rounded-md border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none focus:border-indigo-500 sm:px-4 sm:py-3"
-                />
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="w-full rounded-md px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 sm:w-auto"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 sm:w-auto"
-                >
-                  Save changes
-                </button>
-              </div>
-            </form>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xl text-slate-400 transition hover:text-white"
+          >
+            ×
+          </button>
         </div>
-      )}
-    </>
+
+        <form action={handleUpdate} className="space-y-4">
+          <div>
+            <label
+              htmlFor="title"
+              className="mb-2 block text-sm font-medium text-slate-300"
+            >
+              List title
+            </label>
+
+            <input
+              id="title"
+              name="title"
+              type="text"
+              defaultValue={currentTitle}
+              required
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition focus:border-slate-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+            >
+              Save changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
