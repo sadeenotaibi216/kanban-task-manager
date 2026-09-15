@@ -7,6 +7,7 @@ import AddListCard from "@/app/components/AddListCard";
 import EditBoardModal from "@/app/components/EditBoardModal";
 import ListMenu from "@/app/components/ListMenu";
 import AddCard from "@/app/components/AddCard";
+import EditCardModal from "@/app/components/EditCardModal";
 
 type BoardPageProps = {
   params: Promise<{
@@ -46,6 +47,7 @@ export default async function BoardPage({
       id: boardId,
       userId: user.id,
     },
+
     include: {
       lists: {
         include: {
@@ -54,12 +56,14 @@ export default async function BoardPage({
               position: "asc",
             },
           },
+
           _count: {
             select: {
               cards: true,
             },
           },
         },
+
         orderBy: {
           position: "asc",
         },
@@ -70,6 +74,12 @@ export default async function BoardPage({
   if (!board) {
     notFound();
   }
+
+  const listOptions = board.lists.map((list) => ({
+    id: list.id,
+    title: list.title,
+    cardCount: list._count.cards,
+  }));
 
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
@@ -169,14 +179,15 @@ export default async function BoardPage({
                   ) : (
                     <div className="mt-4 space-y-2">
                       {list.cards.map((card) => (
-                        <div
+                        <EditCardModal
                           key={card.id}
-                          className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 shadow-sm transition hover:border-slate-600"
-                        >
-                          <p className="wrap-break-word text-sm text-slate-200">
-                            {card.title}
-                          </p>
-                        </div>
+                          cardId={card.id}
+                          currentTitle={card.title}
+                          currentDescription={card.description ?? ""}
+                          currentListId={list.id}
+                          currentPosition={card.position}
+                          lists={listOptions}
+                        />
                       ))}
                     </div>
                   )}

@@ -6,8 +6,15 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-const CardSchema = z.object({
+const CreateCardSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
+});
+
+const UpdateCardSchema = z.object({
+  title: z.string().trim().min(1, "Title is required"),
+  description: z.string().trim(),
+  listId: z.string().min(1, "List is required"),
+  position: z.coerce.number().int().min(1),
 });
 
 export async function createCard(listId: string, formData: FormData) {
@@ -17,7 +24,7 @@ export async function createCard(listId: string, formData: FormData) {
     redirect("/login");
   }
 
-  const result = CardSchema.safeParse({
+  const result = CreateCardSchema.safeParse({
     title: formData.get("title"),
   });
 
@@ -72,8 +79,11 @@ export async function updatecard(cardId: string, formData: FormData) {
     redirect("/login");
   }
 
-  const result = CardSchema.safeParse({
+  const result = UpdateCardSchema.safeParse({
     title: formData.get("title"),
+    description: formData.get("description"),
+    listId: formData.get("listId"),
+    position: formData.get("position"),
   });
 
   if (!result.success) {
@@ -108,17 +118,127 @@ export async function updatecard(cardId: string, formData: FormData) {
     throw new Error("Card not found");
   }
 
-  if (result.data.title === card.title) {
-    redirect(`/boards/${card.list.boardId}?message=no-card-changes`);
+  const targetList = await prisma.list.findFirst({
+    where: {
+      id: result.data.listId,
+      boardId: card.list.boardId,
+      board: {
+        userId: user.id,
+      },
+    },
+  });
+
+  if (!targetList) {
+    throw new Error("List not found");
   }
 
-  await prisma.card.update({
+  const targetCardCount = await prisma.card.count({
     where: {
-      id: card.id,
+      listId: targetList.id,
+      id: {
+        not: card.id,
+      },
     },
-    data: {
-      title: result.data.title,
-    },
+  });
+
+  const targetPosition = Math.min(result.data.position, targetCardCount + 1);
+
+  const sameList = card.listId === targetList.id;
+
+  const noChanges =
+    result.data.title === card.title &&
+    result.data.description === (card.description ?? "") &&
+    sameList &&
+    targetPosition === card.position;
+
+  if (noChanges) {
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (sameList) {
+      if (targetPosition < card.position) {
+        await tx.card.updateMany({
+          where: {
+            listId: card.listId,
+            id: {
+              not: card.id,
+            },
+            position: {
+              gte: targetPosition,
+              lt: card.position,
+            },
+          },
+          data: {
+            position: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      if (targetPosition > card.position) {
+        await tx.card.updateMany({
+          where: {
+            listId: card.listId,
+            id: {
+              not: card.id,
+            },
+            position: {
+              gt: card.position,
+              lte: targetPosition,
+            },
+          },
+          data: {
+            position: {
+              decrement: 1,
+            },
+          },
+        });
+      }
+    } else {
+      // Close the gap in the old list.
+      await tx.card.updateMany({
+        where: {
+          listId: card.listId,
+          position: {
+            gt: card.position,
+          },
+        },
+        data: {
+          position: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // Make room in the new list.
+      await tx.card.updateMany({
+        where: {
+          listId: targetList.id,
+          position: {
+            gte: targetPosition,
+          },
+        },
+        data: {
+          position: {
+            increment: 1,
+          },
+        },
+      });
+    }
+
+    await tx.card.update({
+      where: {
+        id: card.id,
+      },
+      data: {
+        title: result.data.title,
+        description: result.data.description,
+        listId: targetList.id,
+        position: targetPosition,
+      },
+    });
   });
 
   revalidatePath(`/boards/${card.list.boardId}`);
@@ -159,90 +279,28 @@ export async function deletecard(cardId: string) {
     throw new Error("Card not found");
   }
 
-  await prisma.card.delete({
-    where: {
-      id: card.id,
-    },
-  });
-
-  revalidatePath(`/boards/${card.list.boardId}`);
-}
-
-export async function movecard(cardId: string, direction: "left" | "right") {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const card = await prisma.card.findFirst({
-    where: {
-      id: cardId,
-      list: {
-        board: {
-          userId: user.id,
-        },
-      },
-    },
-    include: {
-      list: true,
-    },
-  });
-
-  if (!card) {
-    throw new Error("Card not found");
-  }
-
-  const otherCard = await prisma.card.findFirst({
-    where: {
-      listId: card.listId,
-      position:
-        direction === "left"
-          ? {
-              lt: card.position,
-            }
-          : {
-              gt: card.position,
-            },
-    },
-    orderBy: {
-      position: direction === "left" ? "desc" : "asc",
-    },
-  });
-
-  if (!otherCard) {
-    return;
-  }
-
-  await prisma.$transaction([
-    prisma.card.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.card.delete({
       where: {
         id: card.id,
       },
-      data: {
-        position: otherCard.position,
-      },
-    }),
+    });
 
-    prisma.card.update({
+    // Move the cards after it one position up.
+    await tx.card.updateMany({
       where: {
-        id: otherCard.id,
+        listId: card.listId,
+        position: {
+          gt: card.position,
+        },
       },
       data: {
-        position: card.position,
+        position: {
+          decrement: 1,
+        },
       },
-    }),
-  ]);
+    });
+  });
 
   revalidatePath(`/boards/${card.list.boardId}`);
 }
