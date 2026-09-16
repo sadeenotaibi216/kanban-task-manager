@@ -17,7 +17,18 @@ const UpdateCardSchema = z.object({
   position: z.coerce.number().int().min(1),
 });
 
-export async function createCard(listId: string, formData: FormData) {
+type CreateCardState = {
+  message: string;
+  success: boolean;
+};
+
+export async function createCard(
+  listId: string,
+  previousState: CreateCardState,
+  formData: FormData
+): Promise<CreateCardState> {
+  void previousState;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -29,7 +40,10 @@ export async function createCard(listId: string, formData: FormData) {
   });
 
   if (!result.success) {
-    throw new Error("Invalid card information");
+    return {
+      message: "Invalid card information.",
+      success: false,
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -52,7 +66,10 @@ export async function createCard(listId: string, formData: FormData) {
   });
 
   if (!list) {
-    throw new Error("List not found");
+    return {
+      message: "List not found.",
+      success: false,
+    };
   }
 
   const cardCount = await prisma.card.count({
@@ -61,18 +78,41 @@ export async function createCard(listId: string, formData: FormData) {
     },
   });
 
-  await prisma.card.create({
-    data: {
-      title: result.data.title,
-      position: cardCount + 1,
-      listId,
-    },
-  });
+  try {
+    await prisma.card.create({
+      data: {
+        title: result.data.title,
+        position: cardCount + 1,
+        listId,
+      },
+    });
 
-  revalidatePath(`/boards/${list.boardId}`);
+    revalidatePath(`/boards/${list.boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to create card.",
+      success: false,
+    };
+  }
 }
 
-export async function updatecard(cardId: string, formData: FormData) {
+type UpdateCardState = {
+  message: string;
+  success: boolean;
+};
+
+export async function updatecard(
+  cardId: string,
+  previousState: UpdateCardState,
+  formData: FormData
+): Promise<UpdateCardState> {
+  void previousState;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -87,7 +127,10 @@ export async function updatecard(cardId: string, formData: FormData) {
   });
 
   if (!result.success) {
-    throw new Error("Invalid card information");
+    return {
+      message: "Invalid card information.",
+      success: false,
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -115,7 +158,10 @@ export async function updatecard(cardId: string, formData: FormData) {
   });
 
   if (!card) {
-    throw new Error("Card not found");
+    return {
+      message: "Card not found.",
+      success: false,
+    };
   }
 
   const targetList = await prisma.list.findFirst({
@@ -129,7 +175,10 @@ export async function updatecard(cardId: string, formData: FormData) {
   });
 
   if (!targetList) {
-    throw new Error("List not found");
+    return {
+      message: "List not found.",
+      success: false,
+    };
   }
 
   const targetCardCount = await prisma.card.count({
@@ -152,21 +201,74 @@ export async function updatecard(cardId: string, formData: FormData) {
     targetPosition === card.position;
 
   if (noChanges) {
-    return;
+    return {
+      message: "No changes to save.",
+      success: false,
+    };
   }
 
-  await prisma.$transaction(async (tx) => {
-    if (sameList) {
-      if (targetPosition < card.position) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (sameList) {
+        if (targetPosition < card.position) {
+          await tx.card.updateMany({
+            where: {
+              listId: card.listId,
+              id: {
+                not: card.id,
+              },
+              position: {
+                gte: targetPosition,
+                lt: card.position,
+              },
+            },
+            data: {
+              position: {
+                increment: 1,
+              },
+            },
+          });
+        }
+
+        if (targetPosition > card.position) {
+          await tx.card.updateMany({
+            where: {
+              listId: card.listId,
+              id: {
+                not: card.id,
+              },
+              position: {
+                gt: card.position,
+                lte: targetPosition,
+              },
+            },
+            data: {
+              position: {
+                decrement: 1,
+              },
+            },
+          });
+        }
+      } else {
         await tx.card.updateMany({
           where: {
             listId: card.listId,
-            id: {
-              not: card.id,
+            position: {
+              gt: card.position,
             },
+          },
+          data: {
+            position: {
+              decrement: 1,
+            },
+          },
+        });
+
+        await tx.card.updateMany({
+          where: {
+            listId: targetList.id,
             position: {
               gte: targetPosition,
-              lt: card.position,
             },
           },
           data: {
@@ -177,74 +279,46 @@ export async function updatecard(cardId: string, formData: FormData) {
         });
       }
 
-      if (targetPosition > card.position) {
-        await tx.card.updateMany({
-          where: {
-            listId: card.listId,
-            id: {
-              not: card.id,
-            },
-            position: {
-              gt: card.position,
-              lte: targetPosition,
-            },
-          },
-          data: {
-            position: {
-              decrement: 1,
-            },
-          },
-        });
-      }
-    } else {
-      // Close the gap in the old list.
-      await tx.card.updateMany({
+      await tx.card.update({
         where: {
-          listId: card.listId,
-          position: {
-            gt: card.position,
-          },
+          id: card.id,
         },
         data: {
-          position: {
-            decrement: 1,
-          },
-        },
-      });
-
-      // Make room in the new list.
-      await tx.card.updateMany({
-        where: {
+          title: result.data.title,
+          description: result.data.description,
           listId: targetList.id,
-          position: {
-            gte: targetPosition,
-          },
-        },
-        data: {
-          position: {
-            increment: 1,
-          },
+          position: targetPosition,
         },
       });
-    }
-
-    await tx.card.update({
-      where: {
-        id: card.id,
-      },
-      data: {
-        title: result.data.title,
-        description: result.data.description,
-        listId: targetList.id,
-        position: targetPosition,
-      },
     });
-  });
 
-  revalidatePath(`/boards/${card.list.boardId}`);
+    revalidatePath(`/boards/${card.list.boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to update card.",
+      success: false,
+    };
+  }
 }
 
-export async function deletecard(cardId: string) {
+type DeleteCardState = {
+  message: string;
+  success: boolean;
+};
+
+export async function deletecard(
+  cardId: string,
+  previousState: DeleteCardState,
+  formData: FormData
+): Promise<DeleteCardState> {
+  void previousState;
+  void formData;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -276,31 +350,45 @@ export async function deletecard(cardId: string) {
   });
 
   if (!card) {
-    throw new Error("Card not found");
+    return {
+      message: "Card not found.",
+      success: false,
+    };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.card.delete({
-      where: {
-        id: card.id,
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.card.delete({
+        where: {
+          id: card.id,
+        },
+      });
+
+      await tx.card.updateMany({
+        where: {
+          listId: card.listId,
+          position: {
+            gt: card.position,
+          },
+        },
+        data: {
+          position: {
+            decrement: 1,
+          },
+        },
+      });
     });
 
-    // Move the cards after it one position up.
-    await tx.card.updateMany({
-      where: {
-        listId: card.listId,
-        position: {
-          gt: card.position,
-        },
-      },
-      data: {
-        position: {
-          decrement: 1,
-        },
-      },
-    });
-  });
+    revalidatePath(`/boards/${card.list.boardId}`);
 
-  revalidatePath(`/boards/${card.list.boardId}`);
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to delete card.",
+      success: false,
+    };
+  }
 }

@@ -10,7 +10,22 @@ const ListSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
 });
 
-export async function createList(boardId: string, formData: FormData) {
+// ======================================================
+// CREATE LIST
+// ======================================================
+
+type CreateListState = {
+  message: string;
+  success: boolean;
+};
+
+export async function createList(
+  boardId: string,
+  previousState: CreateListState,
+  formData: FormData
+): Promise<CreateListState> {
+  void previousState;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -22,7 +37,10 @@ export async function createList(boardId: string, formData: FormData) {
   });
 
   if (!result.success) {
-    throw new Error("Invalid list information");
+    return {
+      message: "Invalid list information.",
+      success: false,
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -43,7 +61,10 @@ export async function createList(boardId: string, formData: FormData) {
   });
 
   if (!board) {
-    throw new Error("Board not found");
+    return {
+      message: "Board not found.",
+      success: false,
+    };
   }
 
   const listCount = await prisma.list.count({
@@ -52,18 +73,45 @@ export async function createList(boardId: string, formData: FormData) {
     },
   });
 
-  await prisma.list.create({
-    data: {
-      title: result.data.title,
-      position: listCount + 1,
-      boardId,
-    },
-  });
+  try {
+    await prisma.list.create({
+      data: {
+        title: result.data.title,
+        position: listCount + 1,
+        boardId,
+      },
+    });
 
-  revalidatePath(`/boards/${boardId}`);
+    revalidatePath(`/boards/${boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to create list.",
+      success: false,
+    };
+  }
 }
 
-export async function updateList(listId: string, formData: FormData) {
+// ======================================================
+// UPDATE LIST
+// ======================================================
+
+type UpdateListState = {
+  message: string;
+  success: boolean;
+};
+
+export async function updateList(
+  listId: string,
+  previousState: UpdateListState,
+  formData: FormData
+): Promise<UpdateListState> {
+  void previousState;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -75,7 +123,10 @@ export async function updateList(listId: string, formData: FormData) {
   });
 
   if (!result.success) {
-    throw new Error("Invalid list information");
+    return {
+      message: "Invalid list information.",
+      success: false,
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -98,26 +149,60 @@ export async function updateList(listId: string, formData: FormData) {
   });
 
   if (!list) {
-    throw new Error("List not found");
+    return {
+      message: "List not found.",
+      success: false,
+    };
   }
 
   if (result.data.title === list.title) {
-    redirect(`/boards/${list.boardId}?message=no-list-changes`);
+    return {
+      message: "No changes to save.",
+      success: false,
+    };
   }
 
-  await prisma.list.update({
-    where: {
-      id: list.id,
-    },
-    data: {
-      title: result.data.title,
-    },
-  });
+  try {
+    await prisma.list.update({
+      where: {
+        id: list.id,
+      },
+      data: {
+        title: result.data.title,
+      },
+    });
 
-  revalidatePath(`/boards/${list.boardId}`);
+    revalidatePath(`/boards/${list.boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to update list.",
+      success: false,
+    };
+  }
 }
 
-export async function deleteList(listId: string) {
+// ======================================================
+// DELETE LIST
+// ======================================================
+
+type DeleteListState = {
+  message: string;
+  success: boolean;
+};
+
+export async function deleteList(
+  listId: string,
+  previousState: DeleteListState,
+  formData: FormData
+): Promise<DeleteListState> {
+  void previousState;
+  void formData;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -144,19 +229,51 @@ export async function deleteList(listId: string) {
   });
 
   if (!list) {
-    throw new Error("List not found");
+    return {
+      message: "List not found.",
+      success: false,
+    };
   }
 
-  await prisma.list.delete({
-    where: {
-      id: list.id,
-    },
-  });
+  try {
+    await prisma.list.delete({
+      where: {
+        id: list.id,
+      },
+    });
 
-  revalidatePath(`/boards/${list.boardId}`);
+    revalidatePath(`/boards/${list.boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to delete list.",
+      success: false,
+    };
+  }
 }
 
-export async function moveList(listId: string, direction: "left" | "right") {
+// ======================================================
+// MOVE LIST
+// ======================================================
+
+type MoveListState = {
+  message: string;
+  success: boolean;
+};
+
+export async function moveList(
+  listId: string,
+  direction: "left" | "right",
+  previousState: MoveListState,
+  formData: FormData
+): Promise<MoveListState> {
+  void previousState;
+  void formData;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -183,7 +300,10 @@ export async function moveList(listId: string, direction: "left" | "right") {
   });
 
   if (!list) {
-    throw new Error("List not found");
+    return {
+      message: "List not found.",
+      success: false,
+    };
   }
 
   const otherList = await prisma.list.findFirst({
@@ -206,28 +326,43 @@ export async function moveList(listId: string, direction: "left" | "right") {
   });
 
   if (!otherList) {
-    return;
+    return {
+      message: "List cannot be moved further.",
+      success: false,
+    };
   }
 
-  await prisma.$transaction([
-    prisma.list.update({
-      where: {
-        id: list.id,
-      },
-      data: {
-        position: otherList.position,
-      },
-    }),
+  try {
+    await prisma.$transaction([
+      prisma.list.update({
+        where: {
+          id: list.id,
+        },
+        data: {
+          position: otherList.position,
+        },
+      }),
 
-    prisma.list.update({
-      where: {
-        id: otherList.id,
-      },
-      data: {
-        position: list.position,
-      },
-    }),
-  ]);
+      prisma.list.update({
+        where: {
+          id: otherList.id,
+        },
+        data: {
+          position: list.position,
+        },
+      }),
+    ]);
 
-  revalidatePath(`/boards/${list.boardId}`);
+    revalidatePath(`/boards/${list.boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to move list.",
+      success: false,
+    };
+  }
 }

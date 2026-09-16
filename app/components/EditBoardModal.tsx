@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { updateBoard } from "@/app/actions/boards";
 
 type EditBoardModalProps = {
@@ -10,6 +10,11 @@ type EditBoardModalProps = {
   buttonText?: string;
   buttonClassName?: string;
   closeMenu?: () => void;
+};
+
+type UpdateBoardState = {
+  message: string;
+  success: boolean;
 };
 
 export default function EditBoardModal({
@@ -24,14 +29,39 @@ export default function EditBoardModal({
 
   const updateBoardWithId = updateBoard.bind(null, boardId);
 
+  const initialState: UpdateBoardState = {
+    message: "",
+    success: false,
+  };
+
+  async function editBoardAction(
+    previousState: UpdateBoardState,
+    formData: FormData
+  ): Promise<UpdateBoardState> {
+    const result = await updateBoardWithId(previousState, formData);
+
+    if (result.success) {
+      setIsOpen(false);
+      closeMenu?.();
+    }
+
+    return result;
+  }
+
+  const [state, formAction, loading] = useActionState(
+    editBoardAction,
+    initialState
+  );
+
   function handleOpen() {
-    closeMenu?.();
     setIsOpen(true);
   }
 
-  async function handleUpdate(formData: FormData) {
-    await updateBoardWithId(formData);
-    setIsOpen(false);
+  function handleClose() {
+    if (!loading) {
+      setIsOpen(false);
+      closeMenu?.();
+    }
   }
 
   return (
@@ -43,7 +73,7 @@ export default function EditBoardModal({
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
         >
           <div
             className="w-full max-w-md rounded-xl border border-slate-700 bg-[#111827] p-6 shadow-2xl"
@@ -54,14 +84,15 @@ export default function EditBoardModal({
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-xl text-slate-400 transition hover:text-white"
+                onClick={handleClose}
+                disabled={loading}
+                className="text-xl text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ×
               </button>
             </div>
 
-            <form action={handleUpdate} className="space-y-4">
+            <form action={formAction} className="space-y-4">
               <div>
                 <label
                   htmlFor="title"
@@ -76,7 +107,8 @@ export default function EditBoardModal({
                   type="text"
                   defaultValue={currentTitle}
                   required
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-slate-500"
+                  disabled={loading}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -93,24 +125,31 @@ export default function EditBoardModal({
                   name="description"
                   defaultValue={currentDescription}
                   rows={4}
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-slate-500"
+                  disabled={loading}
+                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
+
+              {state.message && (
+                <p className="text-sm text-red-400">{state.message}</p>
+              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                  onClick={handleClose}
+                  disabled={loading}
+                  className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+                  disabled={loading}
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Save changes
+                  {loading ? "Saving..." : "Save changes"}
                 </button>
               </div>
             </form>

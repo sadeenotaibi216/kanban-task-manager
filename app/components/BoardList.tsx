@@ -12,19 +12,16 @@ type BoardListProps = {
   list: {
     id: string;
     title: string;
-
     cards: {
       id: string;
       title: string;
       description: string | null;
       position: number;
     }[];
-
     _count: {
       cards: number;
     };
   };
-
   isFirstList: boolean;
   isLastList: boolean;
   listOptions: ListOption[];
@@ -37,7 +34,7 @@ export default function BoardList({
   listOptions,
 }: BoardListProps) {
   return (
-    <div className="relative flex h-[210px] w-full min-w-0 flex-col rounded-xl border border-slate-800 bg-[#0f172a] p-4 shadow-lg">
+    <div className="relative flex min-h-[210px] w-full min-w-0 flex-col rounded-xl border border-slate-800 bg-[#0f172a] p-4 shadow-lg">
       <div className="flex items-start justify-between gap-3 pr-8">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="wrap-break-word font-semibold text-slate-100">
@@ -58,11 +55,11 @@ export default function BoardList({
       </div>
 
       {list.cards.length === 0 ? (
-        <div className="mt-4 flex flex-1 items-center justify-center rounded-lg bg-slate-900/40">
+        <div className="mt-4 flex min-h-[100px] items-center justify-center rounded-lg bg-slate-900/40 px-4 py-5 text-center">
           <p className="text-sm text-slate-500">No cards yet</p>
         </div>
       ) : (
-        <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
+        <div className="mt-4 space-y-2">
           {list.cards.map((card) => (
             <EditCardModal
               key={card.id}

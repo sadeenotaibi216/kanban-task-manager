@@ -11,7 +11,16 @@ const CreateBoardSchema = z.object({
   description: z.string().trim().optional(),
 });
 
-export async function createBoard(formData: FormData) {
+type CreateBoardState = {
+  message: string;
+};
+
+export async function createBoard(
+  previousState: CreateBoardState,
+  formData: FormData
+): Promise<CreateBoardState> {
+  void previousState;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -24,7 +33,9 @@ export async function createBoard(formData: FormData) {
   });
 
   if (!result.success) {
-    throw new Error("Invalid board information");
+    return {
+      message: "Invalid board information.",
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -37,20 +48,37 @@ export async function createBoard(formData: FormData) {
     redirect("/login");
   }
 
-  await prisma.board.create({
-    data: {
-      title: result.data.title,
-      description: result.data.description ?? "",
-      userId: user.id,
-    },
-  });
+  try {
+    await prisma.board.create({
+      data: {
+        title: result.data.title,
+        description: result.data.description ?? "",
+        userId: user.id,
+      },
+    });
+  } catch {
+    return {
+      message: "Failed to create board.",
+    };
+  }
 
   revalidatePath("/boards");
 
   redirect("/boards");
 }
 
-export async function deleteBoard(boardId: string) {
+type DeleteBoardState = {
+  message: string;
+};
+
+export async function deleteBoard(
+  boardId: string,
+  previousState: DeleteBoardState,
+  formData: FormData
+): Promise<DeleteBoardState> {
+  void previousState;
+  void formData;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -75,19 +103,42 @@ export async function deleteBoard(boardId: string) {
   });
 
   if (!board) {
-    throw new Error("Board not found");
+    return {
+      message: "Board not found.",
+    };
   }
 
-  await prisma.board.delete({
-    where: {
-      id: board.id,
-    },
-  });
+  try {
+    await prisma.board.delete({
+      where: {
+        id: board.id,
+      },
+    });
 
-  revalidatePath("/boards");
+    revalidatePath("/boards");
+
+    return {
+      message: "",
+    };
+  } catch {
+    return {
+      message: "Failed to delete board.",
+    };
+  }
 }
 
-export async function updateBoard(boardId: string, formData: FormData) {
+type UpdateBoardState = {
+  message: string;
+  success: boolean;
+};
+
+export async function updateBoard(
+  boardId: string,
+  previousState: UpdateBoardState,
+  formData: FormData
+): Promise<UpdateBoardState> {
+  void previousState;
+
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -100,7 +151,10 @@ export async function updateBoard(boardId: string, formData: FormData) {
   });
 
   if (!result.success) {
-    throw new Error("Invalid board information");
+    return {
+      message: "Invalid board information.",
+      success: false,
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -121,25 +175,44 @@ export async function updateBoard(boardId: string, formData: FormData) {
   });
 
   if (!board) {
-    throw new Error("Board not found");
+    return {
+      message: "Board not found.",
+      success: false,
+    };
   }
 
   if (
     result.data.title === board.title &&
     (result.data.description ?? "") === (board.description ?? "")
   ) {
-    redirect("/boards?message=no-changes");
+    return {
+      message: "No changes to save.",
+      success: false,
+    };
   }
 
-  await prisma.board.update({
-    where: {
-      id: board.id,
-    },
-    data: {
-      title: result.data.title,
-      description: result.data.description ?? "",
-    },
-  });
+  try {
+    await prisma.board.update({
+      where: {
+        id: board.id,
+      },
+      data: {
+        title: result.data.title,
+        description: result.data.description ?? "",
+      },
+    });
 
-  revalidatePath("/boards");
+    revalidatePath("/boards");
+    revalidatePath(`/boards/${boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to update board.",
+      success: false,
+    };
+  }
 }

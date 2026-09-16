@@ -45,7 +45,6 @@ export default async function BoardPage({
       id: boardId,
       userId: user.id,
     },
-
     include: {
       lists: {
         include: {
@@ -54,14 +53,12 @@ export default async function BoardPage({
               position: "asc",
             },
           },
-
           _count: {
             select: {
               cards: true,
             },
           },
         },
-
         orderBy: {
           position: "asc",
         },

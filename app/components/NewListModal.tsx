@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { createList } from "@/app/actions/lists";
 
 type NewListModalProps = {
   boardId: string;
+};
+
+type CreateListState = {
+  message: string;
+  success: boolean;
 };
 
 export default function NewListModal({ boardId }: NewListModalProps) {
@@ -12,10 +17,33 @@ export default function NewListModal({ boardId }: NewListModalProps) {
 
   const createListWithBoardId = createList.bind(null, boardId);
 
-  async function handleCreate(formData: FormData) {
-    await createListWithBoardId(formData);
+  const initialState: CreateListState = {
+    message: "",
+    success: false,
+  };
 
-    setIsOpen(false);
+  async function createListAction(
+    previousState: CreateListState,
+    formData: FormData
+  ): Promise<CreateListState> {
+    const result = await createListWithBoardId(previousState, formData);
+
+    if (result.success) {
+      setIsOpen(false);
+    }
+
+    return result;
+  }
+
+  const [state, formAction, loading] = useActionState(
+    createListAction,
+    initialState
+  );
+
+  function handleClose() {
+    if (!loading) {
+      setIsOpen(false);
+    }
   }
 
   return (
@@ -36,14 +64,15 @@ export default function NewListModal({ boardId }: NewListModalProps) {
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-xl text-slate-400 transition hover:text-white"
+                onClick={handleClose}
+                disabled={loading}
+                className="text-xl text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ×
               </button>
             </div>
 
-            <form action={handleCreate} className="space-y-5">
+            <form action={formAction} className="space-y-5">
               <div>
                 <label
                   htmlFor="list-title"
@@ -57,25 +86,32 @@ export default function NewListModal({ boardId }: NewListModalProps) {
                   type="text"
                   name="title"
                   required
+                  disabled={loading}
                   placeholder="e.g. To Do"
-                  className="w-full rounded-md border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 sm:px-4 sm:py-3"
+                  className="w-full rounded-md border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-3"
                 />
               </div>
+
+              {state.message && (
+                <p className="text-sm text-red-400">{state.message}</p>
+              )}
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full rounded-md border border-slate-600 px-4 py-2 text-sm transition hover:bg-slate-800 sm:w-auto"
+                  onClick={handleClose}
+                  disabled={loading}
+                  className="w-full rounded-md border border-slate-600 px-4 py-2 text-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 sm:w-auto"
+                  disabled={loading}
+                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
-                  Create list
+                  {loading ? "Creating..." : "Create list"}
                 </button>
               </div>
             </form>

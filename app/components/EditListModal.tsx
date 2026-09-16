@@ -1,5 +1,6 @@
 "use client";
 
+import { useActionState } from "react";
 import { updateList } from "@/app/actions/lists";
 
 type EditListModalProps = {
@@ -7,6 +8,11 @@ type EditListModalProps = {
   currentTitle: string;
   isOpen: boolean;
   onClose: () => void;
+};
+
+type UpdateListState = {
+  message: string;
+  success: boolean;
 };
 
 export default function EditListModal({
@@ -17,10 +23,28 @@ export default function EditListModal({
 }: EditListModalProps) {
   const updateListWithId = updateList.bind(null, listId);
 
-  async function handleUpdate(formData: FormData) {
-    await updateListWithId(formData);
-    onClose();
+  const initialState: UpdateListState = {
+    message: "",
+    success: false,
+  };
+
+  async function updateListAction(
+    previousState: UpdateListState,
+    formData: FormData
+  ): Promise<UpdateListState> {
+    const result = await updateListWithId(previousState, formData);
+
+    if (result.success) {
+      onClose();
+    }
+
+    return result;
   }
+
+  const [state, formAction, loading] = useActionState(
+    updateListAction,
+    initialState
+  );
 
   if (!isOpen) {
     return null;
@@ -29,7 +53,7 @@ export default function EditListModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
+      onClick={loading ? undefined : onClose}
     >
       <div
         className="w-full max-w-md rounded-xl border border-slate-700 bg-[#111827] p-6 shadow-2xl"
@@ -41,13 +65,14 @@ export default function EditListModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-xl text-slate-400 transition hover:text-white"
+            disabled={loading}
+            className="text-xl text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             ×
           </button>
         </div>
 
-        <form action={handleUpdate} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div>
             <label
               htmlFor="title"
@@ -62,24 +87,31 @@ export default function EditListModal({
               type="text"
               defaultValue={currentTitle}
               required
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition focus:border-slate-500"
+              disabled={loading}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
+
+          {state.message && (
+            <p className="text-sm text-red-400">{state.message}</p>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+              disabled={loading}
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+              disabled={loading}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Save changes
+              {loading ? "Saving..." : "Save changes"}
             </button>
           </div>
         </form>

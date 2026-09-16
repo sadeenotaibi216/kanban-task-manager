@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { deletecard, updatecard } from "@/app/actions/cards";
 
 type ListOption = {
@@ -18,6 +18,16 @@ type EditCardModalProps = {
   lists: ListOption[];
 };
 
+type UpdateCardState = {
+  message: string;
+  success: boolean;
+};
+
+type DeleteCardState = {
+  message: string;
+  success: boolean;
+};
+
 export default function EditCardModal({
   cardId,
   currentTitle,
@@ -27,13 +37,59 @@ export default function EditCardModal({
   lists,
 }: EditCardModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-
   const [selectedListId, setSelectedListId] = useState(currentListId);
-
   const [selectedPosition, setSelectedPosition] = useState(currentPosition);
 
   const updateCardWithId = updatecard.bind(null, cardId);
   const deleteCardWithId = deletecard.bind(null, cardId);
+
+  const updateInitialState: UpdateCardState = {
+    message: "",
+    success: false,
+  };
+
+  const deleteInitialState: DeleteCardState = {
+    message: "",
+    success: false,
+  };
+
+  async function updateCardAction(
+    previousState: UpdateCardState,
+    formData: FormData
+  ): Promise<UpdateCardState> {
+    const result = await updateCardWithId(previousState, formData);
+
+    if (result.success) {
+      setIsOpen(false);
+    }
+
+    return result;
+  }
+
+  async function deleteCardAction(
+    previousState: DeleteCardState,
+    formData: FormData
+  ): Promise<DeleteCardState> {
+    const result = await deleteCardWithId(previousState, formData);
+
+    if (result.success) {
+      setIsOpen(false);
+    }
+
+    return result;
+  }
+
+  const [updateState, updateFormAction, saving] = useActionState(
+    updateCardAction,
+    updateInitialState
+  );
+
+  const [deleteState, deleteFormAction, deleting] = useActionState(
+    deleteCardAction,
+    deleteInitialState
+  );
+
+  const loading = saving || deleting;
 
   const selectedList = lists.find((list) => list.id === selectedListId);
 
@@ -42,22 +98,16 @@ export default function EditCardModal({
       ? selectedList?.cardCount || 1
       : (selectedList?.cardCount || 0) + 1;
 
-  async function handleUpdate(formData: FormData) {
-    await updateCardWithId(formData);
-
-    setIsOpen(false);
-  }
-
-  async function handleDelete() {
-    await deleteCardWithId();
-
-    setIsOpen(false);
-  }
-
   function handleOpen() {
     setSelectedListId(currentListId);
     setSelectedPosition(currentPosition);
     setIsOpen(true);
+  }
+
+  function handleClose() {
+    if (!loading) {
+      setIsOpen(false);
+    }
   }
 
   return (
@@ -77,21 +127,28 @@ export default function EditCardModal({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          onClick={handleClose}
+        >
+          <div
+            className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">Edit card</h2>
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-2xl text-slate-400 transition hover:text-white"
+                onClick={handleClose}
+                disabled={loading}
+                className="text-2xl text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ×
               </button>
             </div>
 
-            <form action={handleUpdate}>
+            <form action={updateFormAction}>
               <div className="mt-6">
                 <label className="mb-2 block text-sm text-slate-300">
                   Title
@@ -102,7 +159,8 @@ export default function EditCardModal({
                   type="text"
                   defaultValue={currentTitle}
                   required
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500"
+                  disabled={loading}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -116,7 +174,8 @@ export default function EditCardModal({
                   name="description"
                   defaultValue={currentDescription}
                   rows={4}
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500"
+                  disabled={loading}
+                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -132,6 +191,7 @@ export default function EditCardModal({
                   <select
                     name="listId"
                     value={selectedListId}
+                    disabled={loading}
                     onChange={(e) => {
                       const newListId = e.target.value;
 
@@ -151,7 +211,7 @@ export default function EditCardModal({
                         setSelectedPosition(newList.cardCount + 1);
                       }
                     }}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {lists.map((list) => (
                       <option key={list.id} value={list.id}>
@@ -169,10 +229,11 @@ export default function EditCardModal({
                   <select
                     name="position"
                     value={selectedPosition}
+                    disabled={loading}
                     onChange={(e) =>
                       setSelectedPosition(Number(e.target.value))
                     }
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {Array.from({ length: maxPosition }, (_, index) => {
                       const position = index + 1;
@@ -187,29 +248,44 @@ export default function EditCardModal({
                 </div>
               </div>
 
+              {updateState.message && (
+                <p className="mt-4 text-sm text-red-400">
+                  {updateState.message}
+                </p>
+              )}
+
+              {deleteState.message && (
+                <p className="mt-4 text-sm text-red-400">
+                  {deleteState.message}
+                </p>
+              )}
+
               <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="text-left text-sm font-medium text-red-400 hover:text-red-300"
+                  type="submit"
+                  formAction={deleteFormAction}
+                  disabled={loading}
+                  className="text-left text-sm font-medium text-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Delete card...
+                  {deleting ? "Deleting..." : "Delete card..."}
                 </button>
 
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                    onClick={handleClose}
+                    disabled={loading}
+                    className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
                   </button>
 
                   <button
                     type="submit"
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+                    disabled={loading}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Save changes
+                    {saving ? "Saving..." : "Save changes"}
                   </button>
                 </div>
               </div>

@@ -1,88 +1,116 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { createBoard } from "@/app/actions/boards";
 
 export default function NewBoardModal() {
   const [isOpen, setIsOpen] = useState(false);
 
+  const initialState = {
+    message: "",
+  };
+
+  const [state, formAction, loading] = useActionState(
+    createBoard,
+    initialState
+  );
+
+  function handleOpen() {
+    setIsOpen(true);
+  }
+
+  function handleClose() {
+    setIsOpen(false);
+  }
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex min-h-[150px] w-full items-center justify-center rounded-xl border border-dashed border-indigo-500 px-4 text-sm font-medium text-indigo-400 transition hover:bg-indigo-500/5 hover:text-indigo-300 sm:min-h-[160px]"
+        onClick={handleOpen}
+        className="flex min-h-[150px] w-full items-center justify-center rounded-xl border border-dashed border-slate-700 bg-[#0f172a] text-sm font-medium text-indigo-400 transition hover:border-indigo-500 hover:bg-slate-900 sm:min-h-[160px]"
       >
-        New board
+        + Create new board
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:px-6">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-[#0f172a] p-4 sm:p-6">
-            <div className="mb-5 flex items-center justify-between sm:mb-6">
-              <h2 className="text-lg font-bold text-white sm:text-xl">
-                New board
-              </h2>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={handleClose}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-slate-700 bg-[#111827] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Create board</h2>
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-xl text-slate-400 transition hover:text-white"
+                onClick={handleClose}
+                disabled={loading}
+                className="text-xl text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ×
               </button>
             </div>
 
-            <form action={createBoard} className="space-y-5">
+            <form action={formAction} className="space-y-4">
               <div>
                 <label
                   htmlFor="title"
-                  className="mb-2 block text-sm text-slate-300"
+                  className="mb-2 block text-sm font-medium text-slate-300"
                 >
-                  Title
+                  Board title
                 </label>
 
                 <input
                   id="title"
-                  type="text"
                   name="title"
+                  type="text"
                   required
-                  placeholder="e.g. Marketing site"
-                  className="w-full rounded-md border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 sm:px-4 sm:py-3"
+                  disabled={loading}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="description"
-                  className="mb-2 block text-sm text-slate-300"
+                  className="mb-2 block text-sm font-medium text-slate-300"
                 >
-                  Description <span className="text-slate-500">optional</span>
+                  Description
                 </label>
 
                 <textarea
                   id="description"
                   name="description"
                   rows={4}
-                  placeholder="What is this board for?"
-                  className="w-full resize-none rounded-md border border-slate-700 bg-[#020617] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 sm:px-4 sm:py-3"
+                  disabled={loading}
+                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none transition focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              {state.message && (
+                <p className="text-sm text-red-400">{state.message}</p>
+              )}
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full rounded-md border border-slate-600 px-4 py-2 text-sm text-white transition hover:bg-slate-800 sm:w-auto"
+                  onClick={handleClose}
+                  disabled={loading}
+                  className="w-full rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 sm:w-auto"
+                  disabled={loading}
+                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
-                  Create board
+                  {loading ? "Creating..." : "Create board"}
                 </button>
               </div>
             </form>
