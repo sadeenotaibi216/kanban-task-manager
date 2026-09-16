@@ -5,9 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import NewListModal from "@/app/components/NewListModal";
 import AddListCard from "@/app/components/AddListCard";
 import EditBoardModal from "@/app/components/EditBoardModal";
-import ListMenu from "@/app/components/ListMenu";
-import AddCard from "@/app/components/AddCard";
-import EditCardModal from "@/app/components/EditCardModal";
+import BoardList from "@/app/components/BoardList";
 
 type BoardPageProps = {
   params: Promise<{
@@ -144,58 +142,15 @@ export default async function BoardPage({
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:mt-10 lg:grid-cols-3">
-            {board.lists.map((list, index) => {
-              const isFirstList = index === 0;
-              const isLastList = index === board.lists.length - 1;
-
-              return (
-                <div
-                  key={list.id}
-                  className="relative w-full min-w-0 rounded-xl border border-slate-800 bg-[#0f172a] p-4 shadow-lg"
-                >
-                  <div className="flex items-start justify-between gap-3 pr-8">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <h2 className="wrap-break-word font-semibold text-slate-100">
-                        {list.title}
-                      </h2>
-
-                      <span className="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
-                        {list._count.cards}
-                      </span>
-                    </div>
-
-                    <ListMenu
-                      listId={list.id}
-                      currentTitle={list.title}
-                      isFirstList={isFirstList}
-                      isLastList={isLastList}
-                    />
-                  </div>
-
-                  {list.cards.length === 0 ? (
-                    <div className="mt-4 rounded-lg bg-slate-900/40 px-4 py-5 text-center">
-                      <p className="text-sm text-slate-500">No cards yet</p>
-                    </div>
-                  ) : (
-                    <div className="mt-4 space-y-2">
-                      {list.cards.map((card) => (
-                        <EditCardModal
-                          key={card.id}
-                          cardId={card.id}
-                          currentTitle={card.title}
-                          currentDescription={card.description ?? ""}
-                          currentListId={list.id}
-                          currentPosition={card.position}
-                          lists={listOptions}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <AddCard listId={list.id} />
-                </div>
-              );
-            })}
+            {board.lists.map((list, index) => (
+              <BoardList
+                key={list.id}
+                list={list}
+                isFirstList={index === 0}
+                isLastList={index === board.lists.length - 1}
+                listOptions={listOptions}
+              />
+            ))}
 
             <AddListCard boardId={board.id} />
           </div>
