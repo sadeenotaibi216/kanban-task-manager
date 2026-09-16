@@ -39,37 +39,40 @@ export async function createList(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const board = await prisma.board.findFirst({
-    where: {
-      id: boardId,
-      userId: user.id,
-    },
-  });
-
-  if (!board) {
-    return {
-      message: "Board not found.",
-      success: false,
-    };
-  }
-
-  const listCount = await prisma.list.count({
-    where: {
-      boardId,
-    },
-  });
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        userId: user.id,
+      },
+    });
+
+    if (!board) {
+      return {
+        message: "Board not found.",
+        success: false,
+      };
+    }
+
+    const listCount = await prisma.list.count({
+      where: {
+        boardId,
+      },
+    });
+
     await prisma.list.create({
       data: {
         title: result.data.title,
@@ -121,40 +124,43 @@ export async function updateList(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const list = await prisma.list.findFirst({
-    where: {
-      id: listId,
-      board: {
-        userId: user.id,
-      },
-    },
-  });
-
-  if (!list) {
-    return {
-      message: "List not found.",
-      success: false,
-    };
-  }
-
-  if (result.data.title === list.title) {
-    return {
-      message: "No changes to save.",
-      success: false,
-    };
-  }
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const list = await prisma.list.findFirst({
+      where: {
+        id: listId,
+        board: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!list) {
+      return {
+        message: "List not found.",
+        success: false,
+      };
+    }
+
+    if (result.data.title === list.title) {
+      return {
+        message: "No changes to save.",
+        success: false,
+      };
+    }
+
     await prisma.list.update({
       where: {
         id: list.id,
@@ -197,33 +203,36 @@ export async function deleteList(
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const list = await prisma.list.findFirst({
-    where: {
-      id: listId,
-      board: {
-        userId: user.id,
-      },
-    },
-  });
-
-  if (!list) {
-    return {
-      message: "List not found.",
-      success: false,
-    };
-  }
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const list = await prisma.list.findFirst({
+      where: {
+        id: listId,
+        board: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!list) {
+      return {
+        message: "List not found.",
+        success: false,
+      };
+    }
+
     await prisma.list.delete({
       where: {
         id: list.id,
@@ -264,59 +273,60 @@ export async function moveList(
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const list = await prisma.list.findFirst({
-    where: {
-      id: listId,
-      board: {
-        userId: user.id,
-      },
-    },
-  });
-
-  if (!list) {
-    return {
-      message: "List not found.",
-      success: false,
-    };
-  }
-
-  const otherList = await prisma.list.findFirst({
-    where: {
-      boardId: list.boardId,
-
-      position:
-        direction === "left"
-          ? {
-              lt: list.position,
-            }
-          : {
-              gt: list.position,
-            },
-    },
-
-    orderBy: {
-      position: direction === "left" ? "desc" : "asc",
-    },
-  });
-
-  if (!otherList) {
-    return {
-      message: "List cannot be moved further.",
-      success: false,
-    };
-  }
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const list = await prisma.list.findFirst({
+      where: {
+        id: listId,
+        board: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!list) {
+      return {
+        message: "List not found.",
+        success: false,
+      };
+    }
+
+    const otherList = await prisma.list.findFirst({
+      where: {
+        boardId: list.boardId,
+        position:
+          direction === "left"
+            ? {
+                lt: list.position,
+              }
+            : {
+                gt: list.position,
+              },
+      },
+      orderBy: {
+        position: direction === "left" ? "desc" : "asc",
+      },
+    });
+
+    if (!otherList) {
+      return {
+        message: "List cannot be moved further.",
+        success: false,
+      };
+    }
+
     await prisma.$transaction([
       prisma.list.update({
         where: {
@@ -326,7 +336,6 @@ export async function moveList(
           position: otherList.position,
         },
       }),
-
       prisma.list.update({
         where: {
           id: otherList.id,

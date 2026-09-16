@@ -9,7 +9,9 @@ type EditBoardModalProps = {
   currentDescription: string;
   buttonText?: string;
   buttonClassName?: string;
-  closeMenu?: () => void;
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
+  hideButton?: boolean;
 };
 
 type UpdateBoardState = {
@@ -23,9 +25,13 @@ export default function EditBoardModal({
   currentDescription,
   buttonText = "Edit board",
   buttonClassName = "",
-  closeMenu,
+  externalOpen,
+  onExternalClose,
+  hideButton = false,
 }: EditBoardModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
 
   const updateBoardWithId = updateBoard.bind(null, boardId);
 
@@ -41,8 +47,11 @@ export default function EditBoardModal({
     const result = await updateBoardWithId(previousState, formData);
 
     if (result.success) {
-      setIsOpen(false);
-      closeMenu?.();
+      if (onExternalClose) {
+        onExternalClose();
+      } else {
+        setInternalOpen(false);
+      }
     }
 
     return result;
@@ -54,21 +63,28 @@ export default function EditBoardModal({
   );
 
   function handleOpen() {
-    setIsOpen(true);
+    setInternalOpen(true);
   }
 
   function handleClose() {
-    if (!loading) {
-      setIsOpen(false);
-      closeMenu?.();
+    if (loading) {
+      return;
+    }
+
+    if (onExternalClose) {
+      onExternalClose();
+    } else {
+      setInternalOpen(false);
     }
   }
 
   return (
     <>
-      <button type="button" onClick={handleOpen} className={buttonClassName}>
-        {buttonText}
-      </button>
+      {!hideButton && (
+        <button type="button" onClick={handleOpen} className={buttonClassName}>
+          {buttonText}
+        </button>
+      )}
 
       {isOpen && (
         <div
@@ -77,7 +93,7 @@ export default function EditBoardModal({
         >
           <div
             className="w-full max-w-md rounded-xl border border-slate-700 bg-[#111827] p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">Edit board</h2>

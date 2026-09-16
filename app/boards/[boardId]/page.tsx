@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
-
 import NewListModal from "@/app/components/NewListModal";
 import AddListCard from "@/app/components/AddListCard";
 import EditBoardModal from "@/app/components/EditBoardModal";
@@ -11,60 +10,81 @@ type BoardPageProps = {
   params: Promise<{
     boardId: string;
   }>;
-
-  searchParams: Promise<{
-    message?: string;
-  }>;
 };
 
-export default async function BoardPage({
-  params,
-  searchParams,
-}: BoardPageProps) {
+export default async function BoardPage({ params }: BoardPageProps) {
   const session = await auth();
 
   if (!session?.user?.email) {
     redirect("/login");
   }
 
+  const email = session.user.email;
   const { boardId } = await params;
-  const pageParams = await searchParams;
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
+  let user;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+  } catch {
+    return (
+      <main className="min-h-screen bg-[#020617] px-4 py-6 text-white">
+        <div className="mx-auto max-w-6xl">
+          <div className="rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
+            Failed to load your account. Please try again.
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (!user) {
     redirect("/login");
   }
 
-  const board = await prisma.board.findFirst({
-    where: {
-      id: boardId,
-      userId: user.id,
-    },
-    include: {
-      lists: {
-        include: {
-          cards: {
-            orderBy: {
-              position: "asc",
+  let board;
+
+  try {
+    board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        userId: user.id,
+      },
+      include: {
+        lists: {
+          include: {
+            cards: {
+              orderBy: {
+                position: "asc",
+              },
+            },
+            _count: {
+              select: {
+                cards: true,
+              },
             },
           },
-          _count: {
-            select: {
-              cards: true,
-            },
+          orderBy: {
+            position: "asc",
           },
-        },
-        orderBy: {
-          position: "asc",
         },
       },
-    },
-  });
+    });
+  } catch {
+    return (
+      <main className="min-h-screen bg-[#020617] px-4 py-6 text-white">
+        <div className="mx-auto max-w-6xl">
+          <div className="rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
+            Failed to load this board. Please try again.
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (!board) {
     notFound();
@@ -110,18 +130,6 @@ export default async function BoardPage({
             <NewListModal boardId={board.id} />
           </div>
         </div>
-
-        {pageParams.message === "no-list-changes" && (
-          <div className="mt-6 rounded-md border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300">
-            No changes to save.
-          </div>
-        )}
-
-        {pageParams.message === "no-card-changes" && (
-          <div className="mt-6 rounded-md border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300">
-            No changes to save.
-          </div>
-        )}
 
         {board.lists.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-slate-700 p-6 text-center sm:mt-12 sm:p-10">

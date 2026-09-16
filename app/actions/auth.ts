@@ -10,11 +10,8 @@ import { redirect } from "next/navigation";
 const SignUpSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required"),
-
     email: z.string().trim().email("Invalid email"),
-
     password: z.string().min(8, "Password must be at least 8 characters"),
-
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -33,7 +30,6 @@ export type SignUpState = {
     password?: string[];
     confirmPassword?: string[];
   };
-
   message?: string;
 };
 
@@ -54,12 +50,8 @@ export async function login(
     await signIn("credentials", {
       email,
       password,
-      redirectTo: "/",
+      redirect: false,
     });
-
-    return {
-      message: "",
-    };
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
@@ -68,13 +60,23 @@ export async function login(
         };
       }
 
+      console.error("Login error:", error);
+
       return {
-        message: "Something went wrong while logging in. Please try again.",
+        message:
+          "We couldn't connect to the server. Please check your connection and try again.",
       };
     }
 
-    throw error;
+    console.error("Unexpected login error:", error);
+
+    return {
+      message:
+        "We couldn't connect to the server. Please check your connection and try again.",
+    };
   }
+
+  redirect("/");
 }
 
 export async function signUp(
@@ -96,29 +98,38 @@ export async function signUp(
     };
   }
 
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email: result.data.email,
-    },
-  });
-
-  if (existingUser) {
-    return {
-      errors: {
-        email: ["An account with this email already exists."],
+  try {
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: result.data.email,
       },
+    });
+
+    if (existingUser) {
+      return {
+        errors: {
+          email: ["An account with this email already exists."],
+        },
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(result.data.password, 10);
+
+    await prisma.user.create({
+      data: {
+        name: result.data.name,
+        email: result.data.email,
+        password: hashedPassword,
+      },
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+
+    return {
+      message:
+        "We couldn't connect to the server. Please check your connection and try again.",
     };
   }
-
-  const hashedPassword = await bcrypt.hash(result.data.password, 10);
-
-  await prisma.user.create({
-    data: {
-      name: result.data.name,
-      email: result.data.email,
-      password: hashedPassword,
-    },
-  });
 
   redirect("/login");
 }

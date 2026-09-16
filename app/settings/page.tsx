@@ -21,11 +21,27 @@ export default async function SettingsPage({
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
+  const email = session.user.email;
+
+  let user;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+  } catch {
+    return (
+      <main className="min-h-screen bg-[#020617] text-white">
+        <section className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:py-12">
+          <div className="rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
+            Failed to load your account. Please try again.
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (!user) {
     redirect("/login");
@@ -42,32 +58,46 @@ export default async function SettingsPage({
       redirect("/login");
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: {
-        email: session.user.email,
-      },
-    });
-
-    if (!currentUser) {
-      redirect("/login");
-    }
+    const sessionEmail = session.user.email;
 
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
-
-    if (name === currentUser.name && email === currentUser.email) {
-      redirect("/settings?message=no-changes");
-    }
 
     if (!name || !email) {
       redirect("/settings?error=missing-fields");
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
+    let currentUser;
+
+    try {
+      currentUser = await prisma.user.findUnique({
+        where: {
+          email: sessionEmail,
+        },
+      });
+    } catch {
+      redirect("/settings?error=database");
+    }
+
+    if (!currentUser) {
+      redirect("/login");
+    }
+
+    if (name === currentUser.name && email === currentUser.email) {
+      redirect("/settings?message=no-changes");
+    }
+
+    let existingUser;
+
+    try {
+      existingUser = await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+    } catch {
+      redirect("/settings?error=database");
+    }
 
     if (existingUser && existingUser.id !== currentUser.id) {
       redirect("/settings?error=email-exists");
@@ -75,22 +105,30 @@ export default async function SettingsPage({
 
     const emailChanged = email !== currentUser.email;
 
-    await prisma.user.update({
-      where: {
-        id: currentUser.id,
-      },
-      data: {
-        name,
-        email,
-      },
-    });
+    try {
+      await prisma.user.update({
+        where: {
+          id: currentUser.id,
+        },
+        data: {
+          name,
+          email,
+        },
+      });
+    } catch {
+      redirect("/settings?error=database");
+    }
 
     if (emailChanged) {
-      await signOut({
-        redirectTo: "/login?message=email-updated",
-      });
+      try {
+        await signOut({
+          redirect: false,
+        });
+      } catch {
+        redirect("/settings?error=signout");
+      }
 
-      return;
+      redirect("/login?message=email-updated");
     }
 
     revalidatePath("/", "layout");
@@ -107,50 +145,74 @@ export default async function SettingsPage({
       redirect("/login");
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: {
-        email: session.user.email,
-      },
-    });
-
-    if (!currentUser) {
-      redirect("/login");
-    }
+    const sessionEmail = session.user.email;
 
     const currentPassword = String(formData.get("currentPassword") || "");
     const newPassword = String(formData.get("newPassword") || "");
-
-    if (currentPassword === newPassword) {
-      redirect("/settings?message=no-changes");
-    }
 
     if (!currentPassword || !newPassword) {
       redirect("/settings?error=password-fields");
     }
 
-    const passwordMatch = await bcrypt.compare(
-      currentPassword,
-      currentUser.password
-    );
-
-    if (!passwordMatch) {
-      redirect("/settings?error=wrong-password");
+    if (currentPassword === newPassword) {
+      redirect("/settings?message=no-changes");
     }
 
     if (newPassword.length < 8) {
       redirect("/settings?error=short-password");
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    let currentUser;
 
-    await prisma.user.update({
-      where: {
-        id: currentUser.id,
-      },
-      data: {
-        password: hashedPassword,
-      },
-    });
+    try {
+      currentUser = await prisma.user.findUnique({
+        where: {
+          email: sessionEmail,
+        },
+      });
+    } catch {
+      redirect("/settings?error=database");
+    }
+
+    if (!currentUser) {
+      redirect("/login");
+    }
+
+    let passwordMatch;
+
+    try {
+      passwordMatch = await bcrypt.compare(
+        currentPassword,
+        currentUser.password
+      );
+    } catch {
+      redirect("/settings?error=password");
+    }
+
+    if (!passwordMatch) {
+      redirect("/settings?error=wrong-password");
+    }
+
+    let hashedPassword;
+
+    try {
+      hashedPassword = await bcrypt.hash(newPassword, 10);
+    } catch {
+      redirect("/settings?error=password");
+    }
+
+    try {
+      await prisma.user.update({
+        where: {
+          id: currentUser.id,
+        },
+        data: {
+          password: hashedPassword,
+        },
+      });
+    } catch {
+      redirect("/settings?error=database");
+    }
 
     redirect("/settings?success=password");
   }
@@ -208,6 +270,24 @@ export default async function SettingsPage({
         {params.error === "short-password" && (
           <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
             New password must be at least 8 characters.
+          </div>
+        )}
+
+        {params.error === "database" && (
+          <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
+            Something went wrong. Please try again.
+          </div>
+        )}
+
+        {params.error === "password" && (
+          <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
+            Something went wrong while updating your password. Please try again.
+          </div>
+        )}
+
+        {params.error === "signout" && (
+          <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
+            Failed to sign out. Please try again.
           </div>
         )}
 
@@ -325,9 +405,15 @@ export default async function SettingsPage({
             action={async () => {
               "use server";
 
-              await signOut({
-                redirectTo: "/",
-              });
+              try {
+                await signOut({
+                  redirect: false,
+                });
+              } catch {
+                redirect("/settings?error=signout");
+              }
+
+              redirect("/");
             }}
             className="w-full sm:w-auto"
           >

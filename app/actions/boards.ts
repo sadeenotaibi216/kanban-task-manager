@@ -38,17 +38,19 @@ export async function createBoard(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+      };
+    }
+
     await prisma.board.create({
       data: {
         title: result.data.title,
@@ -63,7 +65,6 @@ export async function createBoard(
   }
 
   revalidatePath("/boards");
-
   redirect("/boards");
 }
 
@@ -85,30 +86,32 @@ export async function deleteBoard(
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const board = await prisma.board.findFirst({
-    where: {
-      id: boardId,
-      userId: user.id,
-    },
-  });
-
-  if (!board) {
-    return {
-      message: "Board not found.",
-    };
-  }
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+      };
+    }
+
+    const board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        userId: user.id,
+      },
+    });
+
+    if (!board) {
+      return {
+        message: "Board not found.",
+      };
+    }
+
     await prisma.board.delete({
       where: {
         id: board.id,
@@ -157,41 +160,44 @@ export async function updateBoard(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const board = await prisma.board.findFirst({
-    where: {
-      id: boardId,
-      userId: user.id,
-    },
-  });
-
-  if (!board) {
-    return {
-      message: "Board not found.",
-      success: false,
-    };
-  }
-
-  if (
-    result.data.title === board.title &&
-    (result.data.description ?? "") === (board.description ?? "")
-  ) {
-    return {
-      message: "No changes to save.",
-      success: false,
-    };
-  }
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        userId: user.id,
+      },
+    });
+
+    if (!board) {
+      return {
+        message: "Board not found.",
+        success: false,
+      };
+    }
+
+    if (
+      result.data.title === board.title &&
+      (result.data.description ?? "") === (board.description ?? "")
+    ) {
+      return {
+        message: "No changes to save.",
+        success: false,
+      };
+    }
+
     await prisma.board.update({
       where: {
         id: board.id,

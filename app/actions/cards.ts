@@ -46,39 +46,42 @@ export async function createCard(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const list = await prisma.list.findFirst({
-    where: {
-      id: listId,
-      board: {
-        userId: user.id,
-      },
-    },
-  });
-
-  if (!list) {
-    return {
-      message: "List not found.",
-      success: false,
-    };
-  }
-
-  const cardCount = await prisma.card.count({
-    where: {
-      listId,
-    },
-  });
-
   try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const list = await prisma.list.findFirst({
+      where: {
+        id: listId,
+        board: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!list) {
+      return {
+        message: "List not found.",
+        success: false,
+      };
+    }
+
+    const cardCount = await prisma.card.count({
+      where: {
+        listId,
+      },
+    });
+
     await prisma.card.create({
       data: {
         title: result.data.title,
@@ -133,81 +136,84 @@ export async function updatecard(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
 
-  if (!user) {
-    redirect("/login");
-  }
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
 
-  const card = await prisma.card.findFirst({
-    where: {
-      id: cardId,
-      list: {
+    const card = await prisma.card.findFirst({
+      where: {
+        id: cardId,
+        list: {
+          board: {
+            userId: user.id,
+          },
+        },
+      },
+      include: {
+        list: true,
+      },
+    });
+
+    if (!card) {
+      return {
+        message: "Card not found.",
+        success: false,
+      };
+    }
+
+    const targetList = await prisma.list.findFirst({
+      where: {
+        id: result.data.listId,
+        boardId: card.list.boardId,
         board: {
           userId: user.id,
         },
       },
-    },
-    include: {
-      list: true,
-    },
-  });
+    });
 
-  if (!card) {
-    return {
-      message: "Card not found.",
-      success: false,
-    };
-  }
+    if (!targetList) {
+      return {
+        message: "List not found.",
+        success: false,
+      };
+    }
 
-  const targetList = await prisma.list.findFirst({
-    where: {
-      id: result.data.listId,
-      boardId: card.list.boardId,
-      board: {
-        userId: user.id,
+    const targetCardCount = await prisma.card.count({
+      where: {
+        listId: targetList.id,
+        id: {
+          not: card.id,
+        },
       },
-    },
-  });
+    });
 
-  if (!targetList) {
-    return {
-      message: "List not found.",
-      success: false,
-    };
-  }
+    const targetPosition = Math.min(result.data.position, targetCardCount + 1);
 
-  const targetCardCount = await prisma.card.count({
-    where: {
-      listId: targetList.id,
-      id: {
-        not: card.id,
-      },
-    },
-  });
+    const sameList = card.listId === targetList.id;
 
-  const targetPosition = Math.min(result.data.position, targetCardCount + 1);
+    const noChanges =
+      result.data.title === card.title &&
+      result.data.description === (card.description ?? "") &&
+      sameList &&
+      targetPosition === card.position;
 
-  const sameList = card.listId === targetList.id;
+    if (noChanges) {
+      return {
+        message: "No changes to save.",
+        success: false,
+      };
+    }
 
-  const noChanges =
-    result.data.title === card.title &&
-    result.data.description === (card.description ?? "") &&
-    sameList &&
-    targetPosition === card.position;
-
-  if (noChanges) {
-    return {
-      message: "No changes to save.",
-      success: false,
-    };
-  }
-
-  try {
     await prisma.$transaction(async (tx) => {
       if (sameList) {
         if (targetPosition < card.position) {
@@ -325,38 +331,41 @@ export async function deletecard(
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
 
-  if (!user) {
-    redirect("/login");
-  }
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
 
-  const card = await prisma.card.findFirst({
-    where: {
-      id: cardId,
-      list: {
-        board: {
-          userId: user.id,
+    const card = await prisma.card.findFirst({
+      where: {
+        id: cardId,
+        list: {
+          board: {
+            userId: user.id,
+          },
         },
       },
-    },
-    include: {
-      list: true,
-    },
-  });
+      include: {
+        list: true,
+      },
+    });
 
-  if (!card) {
-    return {
-      message: "Card not found.",
-      success: false,
-    };
-  }
+    if (!card) {
+      return {
+        message: "Card not found.",
+        success: false,
+      };
+    }
 
-  try {
     await prisma.$transaction(async (tx) => {
       await tx.card.delete({
         where: {
