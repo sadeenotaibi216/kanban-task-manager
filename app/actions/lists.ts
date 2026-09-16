@@ -10,10 +10,6 @@ const ListSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
 });
 
-// ======================================================
-// CREATE LIST
-// ======================================================
-
 type CreateListState = {
   message: string;
   success: boolean;
@@ -95,10 +91,6 @@ export async function createList(
     };
   }
 }
-
-// ======================================================
-// UPDATE LIST
-// ======================================================
 
 type UpdateListState = {
   message: string;
@@ -186,10 +178,6 @@ export async function updateList(
   }
 }
 
-// ======================================================
-// DELETE LIST
-// ======================================================
-
 type DeleteListState = {
   message: string;
   success: boolean;
@@ -255,10 +243,6 @@ export async function deleteList(
     };
   }
 }
-
-// ======================================================
-// MOVE LIST
-// ======================================================
 
 type MoveListState = {
   message: string;
