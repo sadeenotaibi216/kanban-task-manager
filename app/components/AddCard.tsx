@@ -1,32 +1,32 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createList } from "@/app/actions/lists";
+import { createCard } from "@/app/actions/cards";
 
-type AddListCardProps = {
-  boardId: string;
+type AddCardProps = {
+  listId: string;
 };
 
-type CreateListState = {
+type CreateCardState = {
   message: string;
   success: boolean;
 };
 
-export default function AddListCard({ boardId }: AddListCardProps) {
+export default function AddCard({ listId }: AddCardProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const createListWithBoardId = createList.bind(null, boardId);
+  const createCardWithListId = createCard.bind(null, listId);
 
-  const initialState: CreateListState = {
+  const initialState: CreateCardState = {
     message: "",
     success: false,
   };
 
-  async function createListAction(
-    previousState: CreateListState,
+  async function createCardAction(
+    previousState: CreateCardState,
     formData: FormData
-  ): Promise<CreateListState> {
-    const result = await createListWithBoardId(previousState, formData);
+  ): Promise<CreateCardState> {
+    const result = await createCardWithListId(previousState, formData);
 
     if (result.success) {
       setIsOpen(false);
@@ -36,7 +36,7 @@ export default function AddListCard({ boardId }: AddListCardProps) {
   }
 
   const [state, formAction, loading] = useActionState(
-    createListAction,
+    createCardAction,
     initialState
   );
 
@@ -51,9 +51,9 @@ export default function AddListCard({ boardId }: AddListCardProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex min-h-[210px] w-full items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm text-slate-400 transition hover:border-indigo-500 hover:text-indigo-400"
+        className="mt-3 w-full rounded-lg px-3 py-2 text-left text-sm text-slate-400 transition hover:bg-slate-800 hover:text-indigo-400"
       >
-        Add list
+        + Add card
       </button>
 
       {isOpen && (
@@ -66,7 +66,7 @@ export default function AddListCard({ boardId }: AddListCardProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Add list</h2>
+              <h2 className="text-xl font-bold text-white">Add card</h2>
 
               <button
                 type="button"
@@ -81,20 +81,20 @@ export default function AddListCard({ boardId }: AddListCardProps) {
             <form action={formAction} className="space-y-5">
               <div>
                 <label
-                  htmlFor="add-list-title"
+                  htmlFor={`add-card-title-${listId}`}
                   className="mb-2 block text-sm text-slate-300"
                 >
-                  List title
+                  Card title
                 </label>
 
                 <input
-                  id="add-list-title"
+                  id={`add-card-title-${listId}`}
                   type="text"
                   name="title"
                   required
                   autoFocus
                   disabled={loading}
-                  placeholder="e.g. To Do"
+                  placeholder="e.g. Finish homepage"
                   className="w-full rounded-md border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
@@ -118,7 +118,7 @@ export default function AddListCard({ boardId }: AddListCardProps) {
                   disabled={loading}
                   className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Creating..." : "Create list"}
+                  {loading ? "Creating..." : "Create card"}
                 </button>
               </div>
             </form>

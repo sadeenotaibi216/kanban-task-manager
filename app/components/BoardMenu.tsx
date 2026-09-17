@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { deleteBoard } from "@/app/actions/boards";
 import EditBoardModal from "./EditBoardModal";
 
@@ -19,12 +19,31 @@ export default function BoardMenu({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const deleteBoardWithId = deleteBoard.bind(null, boardId);
+  const router = useRouter();
 
-  function handleEdit() {
+  const [isOpening, startTransition] = useTransition();
+
+  function handleOpenBoard() {
+    startTransition(() => {
+      router.push(`/boards/${boardId}`);
+    });
+  }
+
+  function handleEditBoard() {
     setIsMenuOpen(false);
     setIsEditOpen(true);
   }
+
+  const deleteBoardWithId = deleteBoard.bind(null, boardId);
+
+  const initialState = {
+    message: "",
+  };
+
+  const [state, formAction, loading] = useActionState(
+    deleteBoardWithId,
+    initialState
+  );
 
   return (
     <>
@@ -38,32 +57,47 @@ export default function BoardMenu({
         </button>
 
         {isMenuOpen && (
-          <div className="absolute right-0 top-10 z-30 w-48 overflow-hidden rounded-lg border border-slate-700 bg-[#111827] shadow-xl">
-            <Link
-              href={`/boards/${boardId}`}
+          <>
+            <div
+              className="fixed inset-0 z-10"
               onClick={() => setIsMenuOpen(false)}
-              className="block px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-800"
-            >
-              Open board
-            </Link>
+            />
 
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"
-            >
-              Edit board
-            </button>
-
-            <form action={deleteBoardWithId}>
+            <div className="absolute right-0 top-10 z-30 w-48 overflow-hidden rounded-lg border border-slate-700 bg-[#111827] shadow-xl">
               <button
-                type="submit"
-                className="w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-slate-800"
+                type="button"
+                onClick={handleOpenBoard}
+                disabled={isOpening}
+                className="block w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Delete board
+                {isOpening ? "Opening..." : "Open board"}
               </button>
-            </form>
-          </div>
+
+              <button
+                type="button"
+                onClick={handleEditBoard}
+                className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+              >
+                Edit board
+              </button>
+
+              <form action={formAction}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Deleting..." : "Delete board"}
+                </button>
+              </form>
+
+              {state.message && (
+                <p className="px-4 py-2 text-xs text-red-400">
+                  {state.message}
+                </p>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -71,8 +105,9 @@ export default function BoardMenu({
         boardId={boardId}
         currentTitle={currentTitle}
         currentDescription={currentDescription}
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
+        externalOpen={isEditOpen}
+        onExternalClose={() => setIsEditOpen(false)}
+        hideButton
       />
     </>
   );

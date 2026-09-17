@@ -8,13 +8,17 @@ export default async function Navbar() {
   let userName: string | null = null;
 
   if (session?.user?.email) {
-    const user = await prisma.user.findUnique({
-      where: {
-        email: session.user.email,
-      },
-    });
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          email: session.user.email,
+        },
+      });
 
-    userName = user?.name ?? null;
+      userName = user?.name ?? null;
+    } catch {
+      userName = null;
+    }
   }
 
   return <NavbarClient userName={userName} isLoggedIn={!!session?.user} />;

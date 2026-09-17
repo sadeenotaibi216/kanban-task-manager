@@ -3,24 +3,25 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { signIn } from "@/auth";
+import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-// import NextAuth from "next-auth";
-// import Credentials from "next-auth/providers/credentials";
 
 const SignUpSchema = z
   .object({
-    name: z.string().min(1, "Name is required"),
-
-    email: z.string().email("Invalid email"),
-
+    name: z.string().trim().min(1, "Name is required"),
+    email: z.string().trim().email("Invalid email"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-
-    confirmPassword: z.string(),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export type LoginState = {
+  message?: string;
+};
 
 export type SignUpState = {
   errors?: {
@@ -32,8 +33,54 @@ export type SignUpState = {
   message?: string;
 };
 
+export async function login(
+  _previousState: LoginState,
+  formData: FormData
+): Promise<LoginState> {
+  const email = formData.get("email");
+  const password = formData.get("password");
+
+  if (!email || !password) {
+    return {
+      message: "Email and password are required.",
+    };
+  }
+
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      if (error.type === "CredentialsSignin") {
+        return {
+          message: "Invalid email or password. Please try again.",
+        };
+      }
+
+      console.error("Login error:", error);
+
+      return {
+        message:
+          "We couldn't connect to the server. Please check your connection and try again.",
+      };
+    }
+
+    console.error("Unexpected login error:", error);
+
+    return {
+      message:
+        "We couldn't connect to the server. Please check your connection and try again.",
+    };
+  }
+
+  redirect("/");
+}
+
 export async function signUp(
-  previousState: SignUpState,
+  _previousState: SignUpState,
   formData: FormData
 ): Promise<SignUpState> {
   const data = {
@@ -51,29 +98,38 @@ export async function signUp(
     };
   }
 
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email: result.data.email,
-    },
-  });
-
-  if (existingUser) {
-    return {
-      errors: {
-        email: ["An account with this email already exists"],
+  try {
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: result.data.email,
       },
+    });
+
+    if (existingUser) {
+      return {
+        errors: {
+          email: ["An account with this email already exists."],
+        },
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(result.data.password, 10);
+
+    await prisma.user.create({
+      data: {
+        name: result.data.name,
+        email: result.data.email,
+        password: hashedPassword,
+      },
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+
+    return {
+      message:
+        "We couldn't connect to the server. Please check your connection and try again.",
     };
   }
-
-  const hashedPassword = await bcrypt.hash(result.data.password, 10);
-
-  await prisma.user.create({
-    data: {
-      name: result.data.name,
-      email: result.data.email,
-      password: hashedPassword,
-    },
-  });
 
   redirect("/login");
 }

@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { createBoard } from "@/app/actions/boards";
 
 export default function NewBoardButton() {
   const [isOpen, setIsOpen] = useState(false);
+
+  const initialState = {
+    message: "",
+  };
+
+  const [state, formAction, loading] = useActionState(
+    createBoard,
+    initialState
+  );
 
   return (
     <>
@@ -25,13 +34,14 @@ export default function NewBoardButton() {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-xl text-slate-400 transition hover:text-white"
+                disabled={loading}
+                className="text-xl text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ×
               </button>
             </div>
 
-            <form action={createBoard} className="space-y-5">
+            <form action={formAction} className="space-y-5">
               <div>
                 <label
                   htmlFor="new-board-title"
@@ -45,8 +55,9 @@ export default function NewBoardButton() {
                   type="text"
                   name="title"
                   required
+                  disabled={loading}
                   placeholder="e.g. Marketing site"
-                  className="w-full rounded-md border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500"
+                  className="w-full rounded-md border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -62,25 +73,32 @@ export default function NewBoardButton() {
                   id="new-board-description"
                   name="description"
                   rows={4}
+                  disabled={loading}
                   placeholder="What is this board for?"
-                  className="w-full resize-none rounded-md border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500"
+                  className="w-full resize-none rounded-md border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
+
+              {state.message && (
+                <p className="text-sm text-red-400">{state.message}</p>
+              )}
 
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-md border border-slate-600 px-4 py-2 text-sm text-white transition hover:bg-slate-800"
+                  disabled={loading}
+                  className="rounded-md border border-slate-600 px-4 py-2 text-sm text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+                  disabled={loading}
+                  className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Create board
+                  {loading ? "Creating..." : "Create board"}
                 </button>
               </div>
             </form>
