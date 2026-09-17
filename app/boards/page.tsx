@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import NewBoardModal from "../components/NewBoardModal";
 import NewBoardButton from "../components/NewBoardButton";
 import Board from "../components/Board";
-
+import ErrorMessage from "@/app/components/ErrorMessage";
+import Card from "@/app/components/Card";
 export default async function BoardsPage() {
   const session = await auth();
 
@@ -26,9 +27,7 @@ export default async function BoardsPage() {
     return (
       <main className="min-h-screen bg-[#020617] px-4 py-6 text-white">
         <div className="mx-auto max-w-6xl">
-          <div className="rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Failed to load your account. Please try again.
-          </div>
+          <ErrorMessage message="Failed to load your account. Please try again." />
         </div>
       </main>
     );
@@ -64,9 +63,7 @@ export default async function BoardsPage() {
     return (
       <main className="min-h-screen bg-[#020617] px-4 py-6 text-white">
         <div className="mx-auto max-w-6xl">
-          <div className="rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Failed to load your boards. Please try again.
-          </div>
+          <ErrorMessage message="Failed to load your boards. Please try again." />
         </div>
       </main>
     );
@@ -75,6 +72,9 @@ export default async function BoardsPage() {
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-6xl">
+        {/* TEST ADDED HERE
+        <ErrorMessage message="TEST: ErrorMessage is working" /> */}
+
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold sm:text-3xl">Your Boards</h1>
