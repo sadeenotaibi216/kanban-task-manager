@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
+
 import NewListModal from "@/app/components/NewListModal";
-import AddListCard from "@/app/components/AddListCard";
 import EditBoardModal from "@/app/components/EditBoardModal";
-import BoardList from "@/app/components/BoardList";
+import KanbanBoard from "@/app/components/KanbanBoard";
 
 type BoardPageProps = {
   params: Promise<{
@@ -90,12 +90,6 @@ export default async function BoardPage({ params }: BoardPageProps) {
     notFound();
   }
 
-  const listOptions = board.lists.map((list) => ({
-    id: list.id,
-    title: list.title,
-    cardCount: list._count.cards,
-  }));
-
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-6xl">
@@ -146,19 +140,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
             </div>
           </div>
         ) : (
-          <div className="mt-8 grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:mt-10 lg:grid-cols-3">
-            {board.lists.map((list, index) => (
-              <BoardList
-                key={list.id}
-                list={list}
-                isFirstList={index === 0}
-                isLastList={index === board.lists.length - 1}
-                listOptions={listOptions}
-              />
-            ))}
-
-            <AddListCard boardId={board.id} />
-          </div>
+          <KanbanBoard boardId={board.id} initialLists={board.lists} />
         )}
       </div>
     </main>
