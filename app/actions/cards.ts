@@ -401,3 +401,125 @@ export async function deletecard(
     };
   }
 }
+
+type MoveCardState = {
+  message: string;
+  success: boolean;
+};
+
+export async function moveCard(
+  cardId: string,
+  targetListId: string
+): Promise<MoveCardState> {
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: "User account not found.",
+        success: false,
+      };
+    }
+
+    const card = await prisma.card.findFirst({
+      where: {
+        id: cardId,
+        list: {
+          board: {
+            userId: user.id,
+          },
+        },
+      },
+      include: {
+        list: true,
+      },
+    });
+
+    if (!card) {
+      return {
+        message: "Card not found.",
+        success: false,
+      };
+    }
+
+    const targetList = await prisma.list.findFirst({
+      where: {
+        id: targetListId,
+        boardId: card.list.boardId,
+        board: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!targetList) {
+      return {
+        message: "Target list not found.",
+        success: false,
+      };
+    }
+
+    if (card.listId === targetListId) {
+      return {
+        message: "",
+        success: true,
+      };
+    }
+
+    const targetCardCount = await prisma.card.count({
+      where: {
+        listId: targetListId,
+      },
+    });
+
+    const newPosition = targetCardCount + 1;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.card.updateMany({
+        where: {
+          listId: card.listId,
+          position: {
+            gt: card.position,
+          },
+        },
+        data: {
+          position: {
+            decrement: 1,
+          },
+        },
+      });
+
+      await tx.card.update({
+        where: {
+          id: card.id,
+        },
+        data: {
+          listId: targetListId,
+          position: newPosition,
+        },
+      });
+    });
+
+    revalidatePath(`/boards/${card.list.boardId}`);
+
+    return {
+      message: "",
+      success: true,
+    };
+  } catch {
+    return {
+      message: "Failed to move card.",
+      success: false,
+    };
+  }
+}
