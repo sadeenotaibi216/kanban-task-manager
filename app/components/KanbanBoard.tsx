@@ -39,6 +39,16 @@ export default function KanbanBoard({
   boardId,
   initialLists = [],
 }: KanbanBoardProps) {
+  return (
+    <KanbanBoardContent
+      key={JSON.stringify(initialLists)}
+      boardId={boardId}
+      initialLists={initialLists}
+    />
+  );
+}
+
+function KanbanBoardContent({ boardId, initialLists }: KanbanBoardProps) {
   const [lists, setLists] = useState<List[]>(initialLists);
   const [moveError, setMoveError] = useState("");
 
@@ -88,7 +98,6 @@ export default function KanbanBoard({
       }));
 
       const oldList = updatedLists.find((list) => list.id === sourceList.id);
-
       const newList = updatedLists.find((list) => list.id === targetList.id);
 
       if (!oldList || !newList) {
@@ -108,12 +117,10 @@ export default function KanbanBoard({
         position: index + 1,
       }));
 
-      const movedCardWithNewPosition = {
+      newList.cards.push({
         ...movedCard,
         position: newList.cards.length + 1,
-      };
-
-      newList.cards.push(movedCardWithNewPosition);
+      });
 
       oldList._count.cards = oldList.cards.length;
       newList._count.cards = newList.cards.length;
