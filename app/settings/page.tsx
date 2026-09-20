@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-
+import ErrorMessage from "@/app/components/ErrorMessage";
 type SettingsPageProps = {
   searchParams: Promise<{
     success?: string;
@@ -35,9 +35,7 @@ export default async function SettingsPage({
     return (
       <main className="min-h-screen bg-[#020617] text-white">
         <section className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:py-12">
-          <div className="rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Failed to load your account. Please try again.
-          </div>
+          <ErrorMessage message="Failed to load your account. Please try again." />
         </section>
       </main>
     );
@@ -286,9 +284,7 @@ export default async function SettingsPage({
         )}
 
         {params.error === "signout" && (
-          <div className="mb-6 rounded-md border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Failed to sign out. Please try again.
-          </div>
+          <ErrorMessage message="Failed to sign out. Please try again." />
         )}
 
         <div className="mb-6 rounded-xl border border-slate-700 bg-[#0f172a] p-4 sm:p-6">

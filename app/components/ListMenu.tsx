@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, startTransition } from "react";
 import { deleteList, moveList } from "@/app/actions/lists";
 import EditListModal from "./EditListModal";
 
@@ -25,16 +25,14 @@ export default function ListMenu({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const deleteListWithId = deleteList.bind(null, listId);
-
-  const moveLeftWithId = moveList.bind(null, listId, "left");
-
-  const moveRightWithId = moveList.bind(null, listId, "right");
-
   const initialState: ListActionState = {
     message: "",
     success: false,
   };
+
+  const deleteListWithId = deleteList.bind(null, listId);
+  const moveLeftWithId = moveList.bind(null, listId, "left");
+  const moveRightWithId = moveList.bind(null, listId, "right");
 
   async function deleteAction(
     previousState: ListActionState,
@@ -100,6 +98,24 @@ export default function ListMenu({
     setIsEditOpen(true);
   }
 
+  function handleMoveLeft() {
+    startTransition(() => {
+      leftFormAction(new FormData());
+    });
+  }
+
+  function handleMoveRight() {
+    startTransition(() => {
+      rightFormAction(new FormData());
+    });
+  }
+
+  function handleDelete() {
+    startTransition(() => {
+      deleteFormAction(new FormData());
+    });
+  }
+
   return (
     <>
       <div className="absolute right-3 top-3 z-20">
@@ -129,35 +145,32 @@ export default function ListMenu({
                 Edit list
               </button>
 
-              <form action={leftFormAction}>
-                <button
-                  type="submit"
-                  disabled={isFirstList || isBusy}
-                  className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
-                >
-                  {movingLeft ? "Moving..." : "Move left"}
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={handleMoveLeft}
+                disabled={isFirstList || isBusy}
+                className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
+              >
+                {movingLeft ? "Moving..." : "Move left"}
+              </button>
 
-              <form action={rightFormAction}>
-                <button
-                  type="submit"
-                  disabled={isLastList || isBusy}
-                  className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
-                >
-                  {movingRight ? "Moving..." : "Move right"}
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={handleMoveRight}
+                disabled={isLastList || isBusy}
+                className="w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
+              >
+                {movingRight ? "Moving..." : "Move right"}
+              </button>
 
-              <form action={deleteFormAction}>
-                <button
-                  type="submit"
-                  disabled={isBusy}
-                  className="w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {deleting ? "Deleting..." : "Delete list"}
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isBusy}
+                className="w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete list"}
+              </button>
 
               {actionMessage && (
                 <p className="px-4 py-2 text-xs text-red-400">

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
-
+import ErrorMessage from "@/app/components/ErrorMessage";
 import NewListModal from "@/app/components/NewListModal";
 import EditBoardModal from "@/app/components/EditBoardModal";
 import KanbanBoard from "@/app/components/KanbanBoard";
@@ -34,9 +34,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
     return (
       <main className="min-h-screen bg-[#020617] px-4 py-6 text-white">
         <div className="mx-auto max-w-6xl">
-          <div className="rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Failed to load your account. Please try again.
-          </div>
+          <ErrorMessage message="Failed to load this board. Please try again." />
         </div>
       </main>
     );
@@ -78,9 +76,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
     return (
       <main className="min-h-screen bg-[#020617] px-4 py-6 text-white">
         <div className="mx-auto max-w-6xl">
-          <div className="rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-300">
-            Failed to load this board. Please try again.
-          </div>
+          <ErrorMessage message="Failed to load this board. Please try again." />
         </div>
       </main>
     );
